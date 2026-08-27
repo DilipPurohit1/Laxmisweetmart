@@ -11,6 +11,94 @@
   ],
   "products": [
     {
+      "id": "prod-1787825142278",
+      "name": "vivek",
+      "hindiName": "",
+      "description": "Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.",
+      "category": "khoya-sweets",
+      "unit": "kg",
+      "indicativePrice": 650,
+      "images": [
+        "/products/sweet-1787825142265-684456.jpeg"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "isFestiveSpecial": false,
+      "isPerishable": false,
+      "isVisible": true,
+      "isPlaceholderSample": false,
+      "model3DType": "peda",
+      "createdAt": "2026-08-27T10:05:42.278Z",
+      "updatedAt": "2026-08-27T10:05:42.278Z"
+    },
+    {
+      "id": "prod-1787825047197",
+      "name": "Vivek",
+      "hindiName": "",
+      "description": "Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.",
+      "category": "khoya-sweets",
+      "unit": "kg",
+      "indicativePrice": 650,
+      "images": [
+        "/products/sweet-1787825047184-948023.jpeg"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "isFestiveSpecial": false,
+      "isPerishable": false,
+      "isVisible": true,
+      "isPlaceholderSample": false,
+      "model3DType": "peda",
+      "createdAt": "2026-08-27T10:04:07.197Z",
+      "updatedAt": "2026-08-27T10:04:07.197Z"
+    },
+    {
+      "id": "prod-1787824921423",
+      "name": "vivek",
+      "hindiName": "",
+      "description": "Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.",
+      "category": "khoya-sweets",
+      "unit": "kg",
+      "indicativePrice": 650,
+      "images": [
+        "/products/sweet-1787824921412-670440.jpeg"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "isFestiveSpecial": true,
+      "isPerishable": false,
+      "isVisible": true,
+      "isPlaceholderSample": false,
+      "model3DType": "peda",
+      "createdAt": "2026-08-27T10:02:01.423Z",
+      "updatedAt": "2026-08-27T10:02:01.423Z"
+    },
+    {
+      "id": "prod-1787824813420",
+      "name": "vivek",
+      "hindiName": "",
+      "description": "Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.",
+      "category": "khoya-sweets",
+      "unit": "kg",
+      "indicativePrice": 650,
+      "images": [
+        "/products/sweet-1787824813405-306205.jpeg"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "isFestiveSpecial": false,
+      "isPerishable": false,
+      "isVisible": true,
+      "isPlaceholderSample": false,
+      "model3DType": "peda",
+      "createdAt": "2026-08-27T10:00:13.420Z",
+      "updatedAt": "2026-08-27T10:00:13.420Z"
+    },
+    {
       "id": "prod-1787815467501",
       "name": "Special Malai Rabdi Cup",
       "hindiName": "",
