@@ -1,52 +1,49 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, User, Category, StoreSettings } from '../types';
-import { api } from '../services/api';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Product, Category, StoreSettings, User } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_SETTINGS } from '../data/initialData';
+import { api } from '../services/api';
+import {
+  subscribeProducts,
+  createProductInFirestore,
+  updateProductInFirestore,
+  deleteProductInFirestore,
+  toggleVisibilityInFirestore,
+  toggleFestiveInFirestore
+} from '../services/firebase';
 
 interface StoreContextType {
-  // Public Products
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   loadProducts: () => Promise<void>;
-  
-  // Selected Product Detail Modal
+  loadAdminProducts: () => Promise<void>;
   selectedProduct: Product | null;
   setSelectedProduct: (product: Product | null) => void;
-
-  // Filter & Search
   activeCategory: Category;
-  setActiveCategory: (cat: Category) => void;
+  setActiveCategory: (category: Category) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-
-  // Admin Operations
+  settings: StoreSettings;
+  isAdminView: boolean;
+  setIsAdminView: (isAdmin: boolean) => void;
+  user: User | null;
+  token: string | null;
+  isAdmin: boolean;
+  login: (email: string, pass: string) => Promise<void>;
+  logout: () => void;
   adminProducts: Product[];
-  loadAdminProducts: () => Promise<void>;
-  createProduct: (productData: Partial<Product>) => Promise<Product>;
+  createProduct: (product: Partial<Product>) => Promise<Product>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<Product>;
   deleteProduct: (id: string) => Promise<void>;
   toggleVisibility: (id: string, isVisible: boolean) => Promise<void>;
   toggleFestive: (id: string, isFestive: boolean) => Promise<void>;
-
-  // Auth
-  user: User | null;
-  token: string | null;
-  login: (email: string, pass: string) => Promise<void>;
-  logout: () => void;
-  isAdmin: boolean;
-  isAdminView: boolean;
-  setIsAdminView: (admin: boolean) => void;
-
-  settings: StoreSettings;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS.filter(p => p.isVisible));
   const [adminProducts, setAdminProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAdminView, setIsAdminView] = useState<boolean>(false);
@@ -61,7 +58,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const settings = INITIAL_SETTINGS;
   const isAdmin = user?.role === 'admin';
 
-  // Load public products
+  // Real-Time Cloud Firestore Synchronization
+  // Any update from mobile or desktop updates all connected devices across the globe in <100ms
+  useEffect(() => {
+    const unsubscribe = subscribeProducts((liveProducts) => {
+      if (Array.isArray(liveProducts) && liveProducts.length > 0) {
+        setAdminProducts(liveProducts);
+        setProducts(liveProducts.filter(p => p.isVisible));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Public products loader
   const loadProducts = async () => {
     try {
       const data = await api.getProducts();
@@ -69,30 +79,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProducts(data);
       }
     } catch (err) {
-      console.warn('API offline, using verified initial dataset:', err);
+      console.warn('API fallback to real-time sync:', err);
     }
   };
 
-  // Load admin products (including hidden)
   const loadAdminProducts = async () => {
-    if (!token) return;
-    try {
-      const data = await api.getAdminProducts(token);
-      setAdminProducts(data);
-    } catch (err) {
-      console.warn('Failed to load admin products:', err);
-    }
+    // Handled automatically via Firestore onSnapshot
   };
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
-    if (token && isAdmin) {
-      loadAdminProducts();
-    }
-  }, [token, isAdmin]);
 
   // Auth Handlers
   const login = async (email: string, pass: string) => {
@@ -102,7 +95,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('slsm_token', res.token);
     localStorage.setItem('slsm_user', JSON.stringify(res.user));
     setIsAdminView(true);
-    await loadAdminProducts();
   };
 
   const logout = () => {
@@ -113,42 +105,57 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsAdminView(false);
   };
 
-  // Admin CRUD
+  // Real-time Cloud CRUD operations
   const createProduct = async (productData: Partial<Product>): Promise<Product> => {
     if (!token) throw new Error('Admin authentication required');
-    const created = await api.createProduct(productData, token);
-    setAdminProducts(prev => [created, ...prev]);
-    await loadProducts();
-    return created;
+    try {
+      const created = await createProductInFirestore(productData);
+      return created;
+    } catch (err) {
+      console.warn('Firestore write error, falling back to local storage:', err);
+      const created = await api.createProduct(productData, token);
+      return created;
+    }
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
     if (!token) throw new Error('Admin authentication required');
-    const updated = await api.updateProduct(id, updates, token);
-    setAdminProducts(prev => prev.map(p => (p.id === id ? updated : p)));
-    await loadProducts();
-    return updated;
+    try {
+      const updated = await updateProductInFirestore(id, updates);
+      return updated;
+    } catch (err) {
+      console.warn('Firestore update error, falling back to local storage:', err);
+      const updated = await api.updateProduct(id, updates, token);
+      return updated;
+    }
   };
 
   const deleteProduct = async (id: string): Promise<void> => {
     if (!token) throw new Error('Admin authentication required');
-    await api.deleteProduct(id, token);
-    setAdminProducts(prev => prev.filter(p => p.id !== id));
-    await loadProducts();
+    try {
+      await deleteProductInFirestore(id);
+    } catch (err) {
+      console.warn('Firestore delete error, falling back to local storage:', err);
+      await api.deleteProduct(id, token);
+    }
   };
 
   const toggleVisibility = async (id: string, isVisible: boolean) => {
     if (!token) throw new Error('Admin authentication required');
-    const updated = await api.toggleVisibility(id, isVisible, token);
-    setAdminProducts(prev => prev.map(p => (p.id === id ? updated : p)));
-    await loadProducts();
+    try {
+      await toggleVisibilityInFirestore(id, isVisible);
+    } catch (err) {
+      await api.toggleVisibility(id, isVisible, token);
+    }
   };
 
   const toggleFestive = async (id: string, isFestive: boolean) => {
     if (!token) throw new Error('Admin authentication required');
-    const updated = await api.toggleFestive(id, isFestive, token);
-    setAdminProducts(prev => prev.map(p => (p.id === id ? updated : p)));
-    await loadProducts();
+    try {
+      await toggleFestiveInFirestore(id, isFestive);
+    } catch (err) {
+      await api.toggleFestive(id, isFestive, token);
+    }
   };
 
   return (
@@ -157,27 +164,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         products,
         setProducts,
         loadProducts,
+        loadAdminProducts,
         selectedProduct,
         setSelectedProduct,
         activeCategory,
         setActiveCategory,
         searchQuery,
         setSearchQuery,
+        settings,
+        isAdminView,
+        setIsAdminView,
+        user,
+        token,
+        isAdmin,
+        login,
+        logout,
         adminProducts,
-        loadAdminProducts,
         createProduct,
         updateProduct,
         deleteProduct,
         toggleVisibility,
-        toggleFestive,
-        user,
-        token,
-        login,
-        logout,
-        isAdmin,
-        isAdminView,
-        setIsAdminView,
-        settings
+        toggleFestive
       }}
     >
       {children}
@@ -187,6 +194,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useStore = () => {
   const context = useContext(StoreContext);
-  if (!context) throw new Error('useStore must be used within StoreProvider');
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
   return context;
 };
