@@ -19,13 +19,15 @@ export const ProductCatalog: React.FC = () => {
   const { products, activeCategory, setActiveCategory, searchQuery, setSearchQuery, setSelectedProduct } = useStore();
   const [allergenFilter, setAllergenFilter] = useState<string>('all');
 
-  const filteredProducts = products.filter(p => {
-    if (!p.isVisible) return false;
+  const filteredProducts = (products || []).filter((p) => {
+    if (!p || p.isVisible === false) return false;
     const catMatch = activeCategory === 'all' || p.category === activeCategory;
-    const allergenMatch = allergenFilter === 'all' || !p.allergens.includes(allergenFilter as Allergen);
-    const searchMatch = !searchQuery ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const allergens = Array.isArray(p.allergens) ? p.allergens : [];
+    const allergenMatch = allergenFilter === 'all' || !allergens.includes(allergenFilter as Allergen);
+    const searchMatch =
+      !searchQuery ||
+      (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return catMatch && allergenMatch && searchMatch;
   });
@@ -98,76 +100,92 @@ export const ProductCatalog: React.FC = () => {
 
       </div>
 
-      {/* Product Grid */}
+      {/* Catalog Grid */}
       {filteredProducts.length === 0 ? (
-        <div className="text-center py-12 bg-[#FFFDF8] rounded-3xl border border-dashed border-[#E9DED0]">
-          <div className="text-3xl mb-2">🪔</div>
-          <h3 className="text-base font-serif font-bold text-[#241A17]">No items found</h3>
-          <p className="text-xs text-[#241A17]/60 mt-1">Try resetting the category filter or search query.</p>
+        <div className="text-center py-16 bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] p-8">
+          <p className="text-base font-serif font-bold text-[#241A17]">No sweets match your current filter.</p>
+          <p className="text-xs text-[#241A17]/60 mt-1">Try selecting a different category or clearing search.</p>
+          <button
+            onClick={() => {
+              setActiveCategory('all');
+              setSearchQuery('');
+              setAllergenFilter('all');
+            }}
+            className="mt-4 px-4 py-2 bg-[#6E1824] text-white text-xs font-semibold rounded-xl"
+          >
+            Reset Filters
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              onClick={() => setSelectedProduct(product)}
-              className="group rounded-3xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C] p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md"
-            >
-              {/* Product Visual Container with Aspect Ratio */}
-              <div>
-                <div className="aspect-[4/3] w-full rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] relative overflow-hidden mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          {filteredProducts.map((product) => {
+            const displayImage =
+              Array.isArray(product.images) && product.images.length > 0 && product.images[0]
+                ? product.images[0]
+                : '/products/placeholder.jpg';
+
+            return (
+              <div
+                key={product.id}
+                onClick={() => setSelectedProduct(product)}
+                className="group cursor-pointer rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C]/80 p-3.5 flex flex-col justify-between transition-all duration-300 hover:shadow-md relative overflow-hidden"
+              >
+                {/* Festive Ribbon if applicable */}
+                {product.isFestiveSpecial && (
+                  <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full bg-[#B8860B] text-white text-[9px] font-bold tracking-wider uppercase shadow-sm">
+                    {product.festivalTag || 'Festive'}
+                  </div>
+                )}
+
+                {/* Photo Frame */}
+                <div className="w-full aspect-[4/3] rounded-xl bg-[#F8F3EA] border border-[#E9DED0] mb-3 overflow-hidden flex items-center justify-center relative">
                   <img
-                    src={product.images[0] || '/products/placeholder.jpg'}
+                    src={displayImage}
                     alt={product.name}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
                     }}
                   />
-
-                  {product.isFestiveSpecial && (
-                    <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wider bg-[#6E1824] text-[#FFFDF8] px-2 py-0.5 rounded-full shadow">
-                      Festive Special
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="px-2.5 py-1 rounded-lg bg-white/90 text-[#241A17] text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                      <Eye className="w-3 h-3 text-[#6E1824]" /> View Details
                     </span>
-                  )}
+                  </div>
                 </div>
 
-                <h3 className="text-sm sm:text-base font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors mt-0.5 line-clamp-1">
-                  {product.name}
-                </h3>
+                {/* Content */}
+                <div className="space-y-1.5 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-[#6E1824]">
+                      {product.category.replace('-', ' ')}
+                    </div>
+                    <h3 className="text-sm font-serif font-bold text-[#241A17] line-clamp-1 group-hover:text-[#6E1824] transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="text-[11px] text-[#241A17]/70 line-clamp-2 mt-0.5 leading-snug">
+                      {product.description}
+                    </p>
+                  </div>
 
-                <p className="text-xs text-[#241A17]/70 mt-1 line-clamp-2 leading-relaxed">
-                  {product.description}
-                </p>
-
-                {/* Allergen List */}
-                <div className="flex items-center gap-1 mt-2 flex-wrap text-[10px] text-[#241A17]/60">
-                  <span className="font-semibold">Contains:</span>
-                  {product.allergens.map((alg) => (
-                    <span key={alg} className="px-1.5 py-0.2 rounded bg-[#F8F3EA] text-[#241A17]/70 capitalize border border-[#E9DED0]">
-                      {alg}
+                  {/* Pricing and Action */}
+                  <div className="pt-2 border-t border-[#E9DED0] flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] text-[#241A17]/60 block leading-none">Ref Price</span>
+                      <span className="text-sm font-serif font-black text-[#6E1824]">
+                        ₹{product.indicativePrice}{' '}
+                        <span className="text-[10px] font-normal text-[#241A17]/60">/{product.unit}</span>
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-[#B8860B] group-hover:underline">
+                      Inquire &rarr;
                     </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price & Action */}
-              <div className="pt-3 mt-3 border-t border-[#E9DED0] flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] text-[#241A17]/60 block uppercase font-medium">Indicative:</span>
-                  <span className="text-xs sm:text-sm font-serif font-bold text-[#6E1824]">
-                    ₹{product.indicativePrice} / {product.unit}
-                  </span>
+                  </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#6E1824] group-hover:translate-x-1 transition-transform">
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Details</span>
-                </span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

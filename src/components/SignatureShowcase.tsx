@@ -6,29 +6,39 @@ export const SignatureShowcase: React.FC = () => {
   const { products, setSelectedProduct } = useStore();
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
 
-  // Top 5 Curated Signature Items
+  const safeProducts = products || [];
+
+  // Top Curated Signature Items
   const signatureList = [
-    products.find(p => p.id === 'royal-kaju-katli') || products[0],
-    products.find(p => p.id === 'motichoor-laddoo') || products[1],
-    products.find(p => p.id === 'kesar-ras-malai') || products[2],
-    products.find(p => p.id === 'khoya-mawa-peda') || products[3],
-    products.find(p => p.id === 'goan-farsan-mixture') || products[4],
-  ].filter(Boolean);
+    safeProducts.find(p => p.id === 'royal-kaju-katli') || safeProducts[0],
+    safeProducts.find(p => p.id === 'motichoor-laddoo') || safeProducts[1],
+    safeProducts.find(p => p.id === 'kesar-ras-malai') || safeProducts[2],
+    safeProducts.find(p => p.id === 'khoya-mawa-peda') || safeProducts[3],
+    safeProducts.find(p => p.id === 'goan-farsan-mixture') || safeProducts[4],
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item && item.id));
 
   // Auto-scroll featured item every 4 seconds
   useEffect(() => {
+    if (signatureList.length === 0) return;
     const interval = setInterval(() => {
       setActiveFeatureIndex((prev) => (prev + 1) % signatureList.length);
     }, 4000);
     return () => clearInterval(interval);
   }, [signatureList.length]);
 
-  const activeItem = signatureList[activeFeatureIndex];
+  if (signatureList.length === 0) return null;
+
+  const validIndex = activeFeatureIndex < signatureList.length ? activeFeatureIndex : 0;
+  const activeItem = signatureList[validIndex];
   const nextItem = () => setActiveFeatureIndex((prev) => (prev + 1) % signatureList.length);
   const prevItem = () => setActiveFeatureIndex((prev) => (prev - 1 + signatureList.length) % signatureList.length);
 
-  // Other side items excluding current active
-  const sideItems = signatureList.filter((_, i) => i !== activeFeatureIndex).slice(0, 3);
+  const sideItems = signatureList.filter((_, i) => i !== validIndex).slice(0, 3);
+
+  const activeImage =
+    Array.isArray(activeItem.images) && activeItem.images.length > 0 && activeItem.images[0]
+      ? activeItem.images[0]
+      : '/products/placeholder.jpg';
 
   return (
     <section id="favourites" className="py-10 sm:py-16 bg-[#FFFDF8] border-b border-[#E9DED0] text-left">
@@ -47,7 +57,7 @@ export const SignatureShowcase: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs text-[#241A17]/60 pr-3 border-r border-[#E9DED0]">
-              <span>Featuring {activeFeatureIndex + 1} of {signatureList.length}</span>
+              <span>Featuring {validIndex + 1} of {signatureList.length}</span>
             </div>
             <a
               href="#catalog"
@@ -62,112 +72,93 @@ export const SignatureShowcase: React.FC = () => {
         {/* Auto-Rotating Featured Magazine Showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-4">
           
-          {/* Main Auto-Scrolling Spotlight Card with Taller & Clear Photo Frame */}
-          {activeItem && (
-            <div
-              className="lg:col-span-7 group rounded-3xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-6 sm:p-8 flex flex-col justify-between transition-all duration-500 shadow-sm hover:shadow-md relative overflow-hidden"
+          {/* Main Spotlight Card */}
+          <div className="lg:col-span-7 group rounded-3xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-6 sm:p-8 flex flex-col justify-between transition-all duration-500 shadow-sm hover:shadow-md relative overflow-hidden">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[10px] font-bold uppercase tracking-wider">
+                  Featured Specialty
+                </span>
+                <span className="text-xs font-serif font-black text-[#6E1824]">
+                  ₹{activeItem.indicativePrice} <span className="text-[10px] font-normal text-[#241A17]/70">/{activeItem.unit}</span>
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
+                {activeItem.name}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#241A17]/80 line-clamp-2 leading-relaxed">
+                {activeItem.description}
+              </p>
+            </div>
+
+            {/* Photo Frame */}
+            <div 
+              onClick={() => setSelectedProduct(activeItem)}
+              className="my-5 w-full h-56 sm:h-72 rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex items-center justify-center relative cursor-pointer group/img"
             >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold tracking-wider uppercase text-[#6E1824] bg-[#6E1824]/10 px-3 py-0.5 rounded-full flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#C89B3C]" />
-                    <span>Signature Spotlight</span>
-                  </span>
-                  
-                  {/* Manual Arrow Controls */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); prevItem(); }}
-                      className="w-7 h-7 rounded-full bg-white border border-[#E9DED0] hover:bg-[#6E1824] hover:text-white flex items-center justify-center text-xs transition-colors"
-                      title="Previous sweet"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); nextItem(); }}
-                      className="w-7 h-7 rounded-full bg-white border border-[#E9DED0] hover:bg-[#6E1824] hover:text-white flex items-center justify-center text-xs transition-colors"
-                      title="Next sweet"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <h3
-                  onClick={() => setSelectedProduct(activeItem)}
-                  className="text-xl sm:text-2xl font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors cursor-pointer"
-                >
-                  {activeItem.name}
-                </h3>
-
-                <p className="text-xs sm:text-sm text-[#241A17]/80 max-w-lg leading-relaxed">
-                  {activeItem.description}
-                </p>
+              <img
+                src={activeImage}
+                alt={activeItem.name}
+                className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-700"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
+                }}
+              />
+              <div className="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-3 py-1.5 rounded-xl bg-white text-[#241A17] text-xs font-bold flex items-center gap-1.5 shadow-md">
+                  <Eye className="w-3.5 h-3.5 text-[#6E1824]" /> View Details & Pricing
+                </span>
               </div>
+            </div>
 
-              {/* Real Photo Visual Area: Taller, properly centered & perfectly visible */}
-              <div
-                onClick={() => setSelectedProduct(activeItem)}
-                className="my-5 h-72 sm:h-80 rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] relative overflow-hidden cursor-pointer shadow-inner"
-              >
-                <img
-                  key={activeItem.id}
-                  src={activeItem.images[0] || '/products/placeholder.jpg'}
-                  alt={activeItem.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out animate-in fade-in"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
-                  }}
-                />
-              </div>
-
-              {/* Price & Action */}
-              <div className="pt-3 border-t border-[#E9DED0] flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] uppercase text-[#241A17]/60 font-semibold">Indicative Price:</div>
-                  <div className="text-base font-serif font-black text-[#6E1824]">
-                    ₹{activeItem.indicativePrice} <span className="text-xs font-normal text-[#241A17]/70">/ {activeItem.unit}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedProduct(activeItem)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6E1824] hover:underline"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>View Details</span>
-                </button>
-              </div>
-
-              {/* Progress indicator bar */}
-              <div className="flex items-center gap-1.5 mt-3 pt-1">
-                {signatureList.map((item, i) => (
+            {/* Bottom Controls */}
+            <div className="flex items-center justify-between pt-2 border-t border-[#E9DED0]">
+              <div className="flex items-center gap-1.5">
+                {signatureList.map((_, idx) => (
                   <button
-                    key={item.id}
-                    onClick={() => setActiveFeatureIndex(i)}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === activeFeatureIndex ? 'w-7 bg-[#6E1824]' : 'w-1.5 bg-[#E9DED0] hover:bg-[#C89B3C]'
+                    key={idx}
+                    onClick={() => setActiveFeatureIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === validIndex ? 'w-6 bg-[#6E1824]' : 'w-1.5 bg-[#E9DED0] hover:bg-[#6E1824]/40'
                     }`}
-                    title={item.name}
                   />
                 ))}
               </div>
 
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={prevItem}
+                  className="p-2 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={nextItem}
+                  className="p-2 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          )}
+          </div>
 
-          {/* Side Companions with generous thumbnail frames */}
+          {/* Right: Quick Curated Cards */}
           <div className="lg:col-span-5 flex flex-col justify-between gap-4">
-            {sideItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedProduct(item)}
-                className="group rounded-3xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-4 sm:p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md flex-1"
-              >
-                <div className="flex gap-4 items-center">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[#FFFDF8] border border-[#E9DED0] flex-shrink-0">
+            {sideItems.map((item) => {
+              const itemImg =
+                Array.isArray(item.images) && item.images.length > 0 && item.images[0]
+                  ? item.images[0]
+                  : '/products/placeholder.jpg';
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedProduct(item)}
+                  className="group cursor-pointer p-4 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 transition-all flex items-center gap-4 shadow-sm hover:shadow-md"
+                >
+                  <div className="w-20 h-20 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex-shrink-0">
                     <img
-                      src={item.images[0] || '/products/placeholder.jpg'}
+                      src={itemImg}
                       alt={item.name}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
@@ -176,26 +167,23 @@ export const SignatureShowcase: React.FC = () => {
                     />
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-[#6E1824] bg-[#6E1824]/10 px-2 py-0.5 rounded-full capitalize">
+                  <div className="flex-1 overflow-hidden">
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-[#6E1824]">
                       {item.category.replace('-', ' ')}
-                    </span>
-
-                    <h4 className="text-sm sm:text-base font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors truncate mt-1">
+                    </div>
+                    <h4 className="text-sm font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors truncate">
                       {item.name}
                     </h4>
-
-                    <p className="text-xs text-[#241A17]/75 line-clamp-2 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-[#241A17]/70 line-clamp-1 mt-0.5">
                       {item.description}
                     </p>
-
-                    <div className="text-xs font-serif font-bold text-[#6E1824] mt-1.5">
-                      Indicative: ₹{item.indicativePrice} / {item.unit}
+                    <div className="text-xs font-serif font-bold text-[#6E1824] mt-1">
+                      ₹{item.indicativePrice} <span className="text-[9px] font-normal text-[#241A17]/60">/{item.unit}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
         </div>

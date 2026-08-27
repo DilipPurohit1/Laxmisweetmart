@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { useStore } from './context/StoreContext';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -11,6 +11,43 @@ import { VisitUsSection } from './components/VisitUsSection';
 import { Footer } from './components/Footer';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+
+// Error Boundary Component to prevent any blank screen crashes
+class GlobalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_error: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('App runtime error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F3EA] text-[#241A17] p-6 text-center">
+          <h1 className="text-2xl font-serif font-black text-[#6E1824] mb-2">Shri Laxmi Sweet Mart</h1>
+          <p className="text-xs text-[#241A17]/80 mb-4">Reloading latest fresh counter catalog...</p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('slsm_products');
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-[#6E1824] text-white rounded-xl text-xs font-bold shadow-md hover:bg-[#58131D]"
+          >
+            Refresh Catalog
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export const AppContent: React.FC = () => {
   const { isAdminView } = useStore();
@@ -56,5 +93,9 @@ export const AppContent: React.FC = () => {
 };
 
 export default function App() {
-  return <AppContent />;
+  return (
+    <GlobalErrorBoundary>
+      <AppContent />
+    </GlobalErrorBoundary>
+  );
 }

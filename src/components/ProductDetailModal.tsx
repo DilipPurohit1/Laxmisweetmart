@@ -1,30 +1,39 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { X, Phone, AlertTriangle, ShieldAlert, MapPin } from 'lucide-react';
+import { X, Phone, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 export const ProductDetailModal: React.FC = () => {
-  const { selectedProduct, setSelectedProduct, products } = useStore();
+  const { selectedProduct, setSelectedProduct, products, settings } = useStore();
 
   if (!selectedProduct) return null;
 
-  const relatedProducts = products
-    .filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id && p.isVisible)
+  const relatedProducts = (products || [])
+    .filter(p => p && p.id !== selectedProduct.id && p.category === selectedProduct.category)
     .slice(0, 3);
 
+  const displayImage =
+    Array.isArray(selectedProduct.images) && selectedProduct.images.length > 0 && selectedProduct.images[0]
+      ? selectedProduct.images[0]
+      : '/products/placeholder.jpg';
+
+  const allergensList = Array.isArray(selectedProduct.allergens) && selectedProduct.allergens.length > 0
+    ? selectedProduct.allergens.join(', ')
+    : 'milk (traditional dairy)';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-[#241A17] text-left">
-        
-        {/* Modal Header without Hindi */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#F8F3EA] border-b border-[#E9DED0]">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E1824] bg-[#6E1824]/10 px-2.5 py-0.5 rounded-full capitalize">
-              {selectedProduct.category.replace('-', ' ')}
-            </span>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div 
+        className="relative w-full max-w-2xl bg-[#FFFDF8] rounded-3xl shadow-2xl border border-[#E9DED0] overflow-hidden flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E9DED0] bg-[#FFFDF8]">
+          <span className="text-[11px] font-bold tracking-widest uppercase text-[#6E1824]">
+            {selectedProduct.category.replace('-', ' ')}
+          </span>
           <button
             onClick={() => setSelectedProduct(null)}
-            className="p-1 rounded-full text-[#241A17]/60 hover:text-[#241A17] hover:bg-[#E9DED0]/50 transition-colors"
+            className="p-1.5 rounded-full hover:bg-[#F8F3EA] text-[#241A17]/60 hover:text-[#241A17] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -37,7 +46,7 @@ export const ProductDetailModal: React.FC = () => {
           <div className="md:col-span-5 bg-[#F8F3EA] p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#E9DED0] space-y-4">
             <div className="flex-1 flex flex-col items-center justify-center min-h-[220px] rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden group">
               <img
-                src={selectedProduct.images[0] || '/products/placeholder.jpg'}
+                src={displayImage}
                 alt={selectedProduct.name}
                 className="w-full h-full object-cover object-center max-h-72 group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
@@ -95,7 +104,7 @@ export const ProductDetailModal: React.FC = () => {
                   <ShieldAlert className="w-3.5 h-3.5" /> Allergen Information:
                 </div>
                 <div className="text-[11px]">
-                  Contains: <strong className="capitalize">{selectedProduct.allergens.join(', ')}</strong>. Prepared in a traditional halwai kitchen handling whole milk, dairy, and tree nuts.
+                  Contains: <strong className="capitalize">{allergensList}</strong>. Prepared in a traditional halwai kitchen handling whole milk, dairy, and tree nuts.
                 </div>
               </div>
 
@@ -106,49 +115,48 @@ export const ProductDetailModal: React.FC = () => {
                     Related in {selectedProduct.category.replace('-', ' ')}:
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    {relatedProducts.map(rel => (
-                      <button
-                        key={rel.id}
-                        onClick={() => setSelectedProduct(rel)}
-                        className="p-2 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] border border-[#E9DED0] text-left transition-colors flex items-center gap-2"
-                      >
-                        <img
-                          src={rel.images[0]}
-                          alt={rel.name}
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
-                        />
-                        <div className="overflow-hidden">
-                          <div className="text-xs font-bold text-[#241A17] truncate">{rel.name}</div>
-                          <div className="text-[10px] text-[#6E1824] font-semibold">₹{rel.indicativePrice}</div>
-                        </div>
-                      </button>
-                    ))}
+                    {relatedProducts.map(rel => {
+                      const relImg = Array.isArray(rel.images) && rel.images.length > 0 && rel.images[0] ? rel.images[0] : '/products/placeholder.jpg';
+                      return (
+                        <button
+                          key={rel.id}
+                          onClick={() => setSelectedProduct(rel)}
+                          className="p-2 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] border border-[#E9DED0] text-left transition-colors flex items-center gap-2"
+                        >
+                          <img
+                            src={relImg}
+                            alt={rel.name}
+                            className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
+                            }}
+                          />
+                          <div className="overflow-hidden">
+                            <div className="text-[11px] font-bold text-[#241A17] truncate">{rel.name}</div>
+                            <div className="text-[9px] text-[#6E1824] font-semibold">₹{rel.indicativePrice}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-
             </div>
 
-            {/* Direct Call to Order Button (NO Checkout / Add to Cart) */}
-            <div className="pt-4 border-t border-[#E9DED0] space-y-2">
+            {/* Inquire by Phone Button */}
+            <div className="pt-3 border-t border-[#E9DED0] flex items-center justify-between gap-3">
               <a
-                href="tel:09423313875"
-                className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] text-xs uppercase tracking-wider transition-all shadow-sm"
+                href={`tel:${(Array.isArray(settings.phone) ? settings.phone[0] : String(settings.phone)).replace(/\s+/g, '')}`}
+                className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#58131D] text-[#FFFDF8] text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
               >
-                <Phone className="w-4 h-4 text-[#C89B3C]" />
-                <span>Call Shop to Order (094233 13875)</span>
+                <Phone className="w-4 h-4" />
+                Call Mapusa Counter to Order ({Array.isArray(settings.phone) ? settings.phone.join(' / ') : settings.phone})
               </a>
-
-              <div className="text-[10px] text-center text-[#241A17]/60 flex items-center justify-center gap-1">
-                <MapPin className="w-3 h-3 text-[#6E1824]" />
-                <span>Shop No. 1, Near KTC Bus Stand, Mapusa, Goa</span>
-              </div>
             </div>
 
           </div>
 
         </div>
-
       </div>
     </div>
   );

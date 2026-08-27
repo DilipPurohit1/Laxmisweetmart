@@ -12,6 +12,53 @@ import {
   toggleFestiveInFirestore
 } from '../services/firebase';
 
+/**
+ * Defensive Normalizer: Guarantees no undefined property crashes ever occur
+ */
+export const normalizeProduct = (p: any): Product => {
+  if (!p || typeof p !== 'object') {
+    return {
+      id: `item-${Date.now()}`,
+      name: 'Special Sweet',
+      description: 'Handcrafted traditional sweet at Shri Laxmi Sweet Mart.',
+      category: 'khoya-sweets',
+      unit: 'kg',
+      indicativePrice: 500,
+      images: ['/products/placeholder.jpg'],
+      allergens: ['milk'],
+      isFestiveSpecial: false,
+      isPerishable: false,
+      isVisible: true,
+      isPlaceholderSample: false
+    };
+  }
+
+  const rawImages = Array.isArray(p.images) ? p.images : (p.images ? [p.images] : []);
+  const validImages = rawImages.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+
+  return {
+    id: String(p.id || `item-${Date.now()}`),
+    name: String(p.name || 'Special Sweet'),
+    description: String(p.description || 'Freshly prepared at Shri Laxmi Sweet Mart Mapusa.'),
+    category: (p.category || 'khoya-sweets') as Category,
+    unit: (p.unit || 'kg') as Product['unit'],
+    indicativePrice: typeof p.indicativePrice === 'number' ? p.indicativePrice : (Number(p.indicativePrice) || 500),
+    images: validImages.length > 0 ? validImages : ['/products/placeholder.jpg'],
+    allergens: Array.isArray(p.allergens) ? p.allergens : ['milk'],
+    isFestiveSpecial: Boolean(p.isFestiveSpecial),
+    festivalTag: p.festivalTag,
+    isPerishable: Boolean(p.isPerishable),
+    isVisible: p.isVisible !== false,
+    isPlaceholderSample: Boolean(p.isPlaceholderSample),
+    updatedAt: p.updatedAt || new Date().toISOString()
+  };
+};
+
+const normalizeList = (list: any[]): Product[] => {
+  if (!Array.isArray(list)) return INITIAL_PRODUCTS;
+  return list.map(normalizeProduct);
+};
+
 interface StoreContextType {
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
@@ -48,11 +95,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((p: Product) => p.isVisible);
+          return normalizeList(parsed).filter((p) => p.isVisible);
         }
       }
     } catch {}
-    return INITIAL_PRODUCTS.filter(p => p.isVisible);
+    return INITIAL_PRODUCTS.filter((p) => p.isVisible);
   });
 
   const [adminProducts, setAdminProducts] = useState<Product[]>(() => {
@@ -61,7 +108,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return normalizeList(parsed);
         }
       }
     } catch {}
@@ -76,44 +123,58 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Auth State
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('slsm_token'));
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('slsm_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('slsm_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const settings = INITIAL_SETTINGS;
   const isAdmin = user?.role === 'admin';
 
-  // Helper to persist in localStorage
+  // Helper to persist in localStorage safely
   const persistLocally = (list: Product[]) => {
     try {
       localStorage.setItem('slsm_products', JSON.stringify(list));
-    } catch {}
+    } catch (e) {
+      console.warn('LocalStorage quota notice:', e);
+    }
   };
 
-  const syncFirestoreToState = (liveProducts: Product[]) => {
+  const syncFirestoreToState = (liveProducts: any[]) => {
     if (Array.isArray(liveProducts) && liveProducts.length > 0) {
-      setAdminProducts(liveProducts);
-      setProducts(liveProducts.filter(p => p.isVisible));
-      persistLocally(liveProducts);
+      const clean = normalizeList(liveProducts);
+      setAdminProducts(clean);
+      setProducts(clean.filter((p) => p.isVisible));
+      persistLocally(clean);
     }
   };
 
   // Real-Time Cloud Firestore Synchronization
   useEffect(() => {
-    const unsubscribe = subscribeProducts((liveProducts) => {
-      syncFirestoreToState(liveProducts);
-    });
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = subscribeProducts((liveProducts) => {
+        syncFirestoreToState(liveProducts);
+      });
+    } catch (e) {
+      console.warn('Firestore subscription notice:', e);
+    }
 
     // Re-fetch on mobile browser focus or app switch
     const handleFocus = () => {
-      fetchAllFirestoreProducts().then(syncFirestoreToState);
+      fetchAllFirestoreProducts()
+        .then(syncFirestoreToState)
+        .catch(() => {});
     };
 
     window.addEventListener('focus', handleFocus);
     window.addEventListener('visibilitychange', handleFocus);
 
     return () => {
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('visibilitychange', handleFocus);
     };
@@ -124,17 +185,20 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const live = await fetchAllFirestoreProducts();
       syncFirestoreToState(live);
     } catch {
-      const data = await api.getProducts();
-      if (Array.isArray(data) && data.length > 0) {
-        setProducts(data);
-        setAdminProducts(data);
-      }
+      try {
+        const data = await api.getProducts();
+        if (Array.isArray(data) && data.length > 0) {
+          syncFirestoreToState(data);
+        }
+      } catch {}
     }
   };
 
   const loadAdminProducts = async () => {
-    const live = await fetchAllFirestoreProducts();
-    syncFirestoreToState(live);
+    try {
+      const live = await fetchAllFirestoreProducts();
+      syncFirestoreToState(live);
+    } catch {}
   };
 
   // Auth Handlers
@@ -159,36 +223,17 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // 1. Create Product (Optimistic Instant Update + Firestore + Local Storage)
   const createProduct = async (productData: Partial<Product>): Promise<Product> => {
     if (!token) throw new Error('Admin authentication required');
-    const newId =
-      productData.id ||
-      (productData.name ? productData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '') ||
-      `item-${Date.now()}`;
-
-    const newProduct: Product = {
-      id: newId,
-      name: productData.name || 'New Sweet',
-      description: productData.description || 'Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.',
-      category: productData.category || 'khoya-sweets',
-      unit: productData.unit || 'kg',
-      indicativePrice: Number(productData.indicativePrice) || 500,
-      images: productData.images && productData.images.length > 0 ? productData.images : ['/products/peda.jpg'],
-      allergens: productData.allergens || ['milk'],
-      isFestiveSpecial: !!productData.isFestiveSpecial,
-      festivalTag: productData.festivalTag,
-      isPerishable: !!productData.isPerishable,
-      isVisible: productData.isVisible !== false,
-      isPlaceholderSample: false
-    };
+    const newProduct = normalizeProduct(productData);
 
     // Instant optimistic update
-    setAdminProducts(prev => {
-      const updated = [newProduct, ...prev.filter(p => p.id !== newId)];
+    setAdminProducts((prev) => {
+      const updated = [newProduct, ...prev.filter((p) => p.id !== newProduct.id)];
       persistLocally(updated);
       return updated;
     });
 
     if (newProduct.isVisible) {
-      setProducts(prev => [newProduct, ...prev.filter(p => p.id !== newId)]);
+      setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== newProduct.id)]);
     }
 
     // Cloud Firestore Sync
@@ -212,10 +257,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     let updatedItem: Product | null = null;
 
-    setAdminProducts(prev => {
-      const nextList = prev.map(p => {
+    setAdminProducts((prev) => {
+      const nextList = prev.map((p) => {
         if (p.id === id) {
-          updatedItem = { ...p, ...updates };
+          updatedItem = normalizeProduct({ ...p, ...updates });
           return updatedItem;
         }
         return p;
@@ -224,10 +269,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return nextList;
     });
 
-    setProducts(prev => {
+    setProducts((prev) => {
       return prev
-        .map(p => (p.id === id ? { ...p, ...updates } : p))
-        .filter(p => p.isVisible);
+        .map((p) => (p.id === id ? normalizeProduct({ ...p, ...updates }) : p))
+        .filter((p) => p.isVisible);
     });
 
     try {
@@ -240,20 +285,20 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       await api.updateProduct(id, updates, token);
     } catch {}
 
-    return updatedItem || ({ id, ...updates } as Product);
+    return updatedItem || normalizeProduct({ id, ...updates });
   };
 
   // 3. Delete Product (Optimistic Instant Update + Firestore + Local Storage)
   const deleteProduct = async (id: string): Promise<void> => {
     if (!token) throw new Error('Admin authentication required');
 
-    setAdminProducts(prev => {
-      const nextList = prev.filter(p => p.id !== id);
+    setAdminProducts((prev) => {
+      const nextList = prev.filter((p) => p.id !== id);
       persistLocally(nextList);
       return nextList;
     });
 
-    setProducts(prev => prev.filter(p => p.id !== id));
+    setProducts((prev) => prev.filter((p) => p.id !== id));
 
     try {
       await deleteProductInFirestore(id);
