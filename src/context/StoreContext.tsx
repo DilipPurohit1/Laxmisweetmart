@@ -4,6 +4,7 @@ import { INITIAL_PRODUCTS, INITIAL_SETTINGS } from '../data/initialData';
 import { api } from '../services/api';
 import {
   subscribeProducts,
+  fetchAllFirestoreProducts,
   createProductInFirestore,
   updateProductInFirestore,
   deleteProductInFirestore,
@@ -89,32 +90,52 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } catch {}
   };
 
+  const syncFirestoreToState = (liveProducts: Product[]) => {
+    if (Array.isArray(liveProducts) && liveProducts.length > 0) {
+      setAdminProducts(liveProducts);
+      setProducts(liveProducts.filter(p => p.isVisible));
+      persistLocally(liveProducts);
+    }
+  };
+
   // Real-Time Cloud Firestore Synchronization
   useEffect(() => {
     const unsubscribe = subscribeProducts((liveProducts) => {
-      if (Array.isArray(liveProducts) && liveProducts.length > 0) {
-        setAdminProducts(liveProducts);
-        setProducts(liveProducts.filter(p => p.isVisible));
-        persistLocally(liveProducts);
-      }
+      syncFirestoreToState(liveProducts);
     });
 
-    return () => unsubscribe();
+    // Re-fetch on mobile browser focus or app switch
+    const handleFocus = () => {
+      fetchAllFirestoreProducts().then(syncFirestoreToState);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   const loadProducts = async () => {
     try {
+      const live = await fetchAllFirestoreProducts();
+      syncFirestoreToState(live);
+    } catch {
       const data = await api.getProducts();
       if (Array.isArray(data) && data.length > 0) {
         setProducts(data);
         setAdminProducts(data);
       }
-    } catch (err) {
-      console.warn('API fallback to real-time sync:', err);
     }
   };
 
-  const loadAdminProducts = async () => {};
+  const loadAdminProducts = async () => {
+    const live = await fetchAllFirestoreProducts();
+    syncFirestoreToState(live);
+  };
 
   // Auth Handlers
   const login = async (email: string, pass: string) => {
@@ -124,6 +145,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     localStorage.setItem('slsm_token', res.token);
     localStorage.setItem('slsm_user', JSON.stringify(res.user));
     setIsAdminView(true);
+    await loadAdminProducts();
   };
 
   const logout = () => {
@@ -148,7 +170,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       description: productData.description || 'Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.',
       category: productData.category || 'khoya-sweets',
       unit: productData.unit || 'kg',
-      indicativePrice: productData.indicativePrice || 500,
+      indicativePrice: Number(productData.indicativePrice) || 500,
       images: productData.images && productData.images.length > 0 ? productData.images : ['/products/peda.jpg'],
       allergens: productData.allergens || ['milk'],
       isFestiveSpecial: !!productData.isFestiveSpecial,

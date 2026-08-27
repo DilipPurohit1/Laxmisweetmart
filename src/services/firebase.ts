@@ -4,7 +4,6 @@ import {
   collection,
   doc,
   setDoc,
-  updateDoc,
   deleteDoc,
   onSnapshot,
   getDocs,
@@ -31,61 +30,61 @@ export const db = getFirestore(app);
 const PRODUCTS_COLLECTION = 'products';
 
 /**
- * Automatically seed initial 29 products into Firebase Cloud Firestore if missing
+ * Fetch all products directly from Firestore
  */
-export const seedInitialProductsIfEmpty = async () => {
+export const fetchAllFirestoreProducts = async (): Promise<Product[]> => {
   try {
     const colRef = collection(db, PRODUCTS_COLLECTION);
     const snap = await getDocs(colRef);
-    if (snap.empty || snap.size < 5) {
-      console.log('🌱 Populating initial verified products in Firebase Cloud Firestore...');
-      for (const prod of INITIAL_PRODUCTS) {
-        await setDoc(doc(db, PRODUCTS_COLLECTION, prod.id), {
-          ...prod,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      }
-      console.log('✅ Initial products populated in Cloud Firestore!');
+    if (!snap.empty) {
+      const items: Product[] = [];
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        if (d && d.id && d.name) {
+          items.push(d as Product);
+        }
+      });
+      if (items.length > 0) return items;
     }
   } catch (err) {
-    console.warn('Firestore initial check note:', err);
+    console.warn('Firestore fetch error:', err);
   }
+  return INITIAL_PRODUCTS;
 };
 
 /**
  * Real-Time Products Subscription (WebSockets onSnapshot)
- * Any update from mobile or desktop triggers all active clients within <100ms
+ * Triggers all active clients on mobile, tablet, and desktop within <100ms
  */
 export const subscribeProducts = (onUpdate: (products: Product[]) => void): Unsubscribe => {
   const colRef = collection(db, PRODUCTS_COLLECTION);
 
-  // Trigger initial seed check in background
-  seedInitialProductsIfEmpty();
+  // Fetch immediately on init
+  fetchAllFirestoreProducts().then((items) => {
+    if (items && items.length > 0) {
+      onUpdate(items);
+    }
+  });
 
   const unsubscribe = onSnapshot(
     colRef,
     (snapshot) => {
-      if (snapshot.empty) {
-        // If collection is empty, trigger seed and provide INITIAL_PRODUCTS
-        seedInitialProductsIfEmpty();
-        onUpdate(INITIAL_PRODUCTS);
-        return;
-      }
+      if (!snapshot.empty) {
+        const products: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d && d.id && d.name) {
+            products.push(d as Product);
+          }
+        });
 
-      const products: Product[] = [];
-      snapshot.forEach((docSnap) => {
-        const d = docSnap.data();
-        if (d && d.id && d.name) {
-          products.push(d as Product);
+        if (products.length > 0) {
+          onUpdate(products);
         }
-      });
-
-      if (products.length > 0) {
-        onUpdate(products);
       }
     },
     (error) => {
-      console.warn('Firestore real-time listener warning, using local cache:', error);
+      console.warn('Firestore listener notice:', error);
     }
   );
 
