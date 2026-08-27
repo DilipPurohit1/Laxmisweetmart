@@ -31,21 +31,21 @@ export const db = getFirestore(app);
 const PRODUCTS_COLLECTION = 'products';
 
 /**
- * Automatically seed initial 29 products if Firestore collection is empty
+ * Automatically seed initial 29 products into Firebase Cloud Firestore if missing
  */
 export const seedInitialProductsIfEmpty = async () => {
   try {
     const colRef = collection(db, PRODUCTS_COLLECTION);
     const snap = await getDocs(colRef);
-    if (snap.empty) {
-      console.log('🌱 Seeding initial 29 products into Firebase Cloud Firestore...');
+    if (snap.empty || snap.size < 5) {
+      console.log('🌱 Populating initial verified products in Firebase Cloud Firestore...');
       for (const prod of INITIAL_PRODUCTS) {
         await setDoc(doc(db, PRODUCTS_COLLECTION, prod.id), {
           ...prod,
           updatedAt: new Date().toISOString()
-        });
+        }, { merge: true });
       }
-      console.log('✅ Initial products successfully seeded to Firestore Cloud!');
+      console.log('✅ Initial products populated in Cloud Firestore!');
     }
   } catch (err) {
     console.warn('Firestore initial check note:', err);
@@ -66,21 +66,26 @@ export const subscribeProducts = (onUpdate: (products: Product[]) => void): Unsu
     colRef,
     (snapshot) => {
       if (snapshot.empty) {
-        // Fallback while seeding
+        // If collection is empty, trigger seed and provide INITIAL_PRODUCTS
+        seedInitialProductsIfEmpty();
         onUpdate(INITIAL_PRODUCTS);
         return;
       }
 
       const products: Product[] = [];
       snapshot.forEach((docSnap) => {
-        products.push(docSnap.data() as Product);
+        const d = docSnap.data();
+        if (d && d.id && d.name) {
+          products.push(d as Product);
+        }
       });
 
-      onUpdate(products);
+      if (products.length > 0) {
+        onUpdate(products);
+      }
     },
     (error) => {
       console.warn('Firestore real-time listener warning, using local cache:', error);
-      onUpdate(INITIAL_PRODUCTS);
     }
   );
 
@@ -99,10 +104,10 @@ export const createProductInFirestore = async (productData: Partial<Product>): P
   const newProduct: Product = {
     id: newId,
     name: productData.name || 'New Sweet',
-    description: productData.description || '',
+    description: productData.description || 'Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.',
     category: productData.category || 'khoya-sweets',
     unit: productData.unit || 'kg',
-    indicativePrice: productData.indicativePrice || 500,
+    indicativePrice: Number(productData.indicativePrice) || 500,
     images: productData.images && productData.images.length > 0 ? productData.images : ['/products/peda.jpg'],
     allergens: productData.allergens || ['milk'],
     isFestiveSpecial: !!productData.isFestiveSpecial,
@@ -114,7 +119,7 @@ export const createProductInFirestore = async (productData: Partial<Product>): P
   };
 
   const docRef = doc(db, PRODUCTS_COLLECTION, newId);
-  await setDoc(docRef, newProduct);
+  await setDoc(docRef, newProduct, { merge: true });
   return newProduct;
 };
 
@@ -127,7 +132,7 @@ export const updateProductInFirestore = async (id: string, updates: Partial<Prod
     ...updates,
     updatedAt: new Date().toISOString()
   };
-  await updateDoc(docRef, cleanUpdates as any);
+  await setDoc(docRef, cleanUpdates, { merge: true });
   return { id, ...cleanUpdates } as Product;
 };
 

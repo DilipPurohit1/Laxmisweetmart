@@ -11,6 +11,28 @@
   ],
   "products": [
     {
+      "id": "prod-1787825410706",
+      "name": "Vivek",
+      "hindiName": "",
+      "description": "Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.",
+      "category": "khoya-sweets",
+      "unit": "kg",
+      "indicativePrice": 650,
+      "images": [
+        "/products/sweet-1787825410691-967024.jpeg"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "isFestiveSpecial": false,
+      "isPerishable": false,
+      "isVisible": true,
+      "isPlaceholderSample": false,
+      "model3DType": "peda",
+      "createdAt": "2026-08-27T10:10:10.706Z",
+      "updatedAt": "2026-08-27T10:10:10.706Z"
+    },
+    {
       "id": "prod-1787825142278",
       "name": "vivek",
       "hindiName": "",
