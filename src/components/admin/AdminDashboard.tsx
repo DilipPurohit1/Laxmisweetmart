@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
+import { compressImage } from '../../services/api';
 
 const ALLERGEN_OPTIONS: { id: Allergen; label: string }[] = [
   { id: 'milk', label: 'Milk' },
@@ -126,15 +127,15 @@ export const AdminDashboard: React.FC = () => {
       let finalImages = formData.images && formData.images.length > 0 ? [...formData.images] : ['/products/peda.jpg'];
 
       // If user uploaded a new image file
-      if (uploadedFile && token) {
+      if (uploadedFile) {
         setIsUploading(true);
         try {
-          const uploadRes = await import('../../services/api').then(m => m.api.uploadImage(uploadedFile, token));
-          if (uploadRes && uploadRes.url) {
-            finalImages = [uploadRes.url];
+          const compressed = await compressImage(uploadedFile);
+          if (compressed) {
+            finalImages = [compressed];
           }
         } catch (uploadErr) {
-          console.warn('Image upload failed, using default:', uploadErr);
+          console.warn('Image compression note:', uploadErr);
         } finally {
           setIsUploading(false);
         }

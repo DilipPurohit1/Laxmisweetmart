@@ -1,19 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Product, Category, StoreSettings, User } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_SETTINGS } from '../data/initialData';
 import { api } from '../services/api';
 import {
-  subscribeProducts,
-  fetchAllFirestoreProducts,
-  createProductInFirestore,
-  updateProductInFirestore,
-  deleteProductInFirestore,
-  toggleVisibilityInFirestore,
-  toggleFestiveInFirestore
-} from '../services/firebase';
+  fetchAllProductsFromFirestore,
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  seedFirestoreIfEmpty
+} from '../services/firebaseRest';
 
 /**
- * Defensive Normalizer: Guarantees no undefined property crashes ever occur
+ * Defensive Normalizer: Guarantees every product has valid fields
  */
 export const normalizeProduct = (p: any): Product => {
   if (!p || typeof p !== 'object') {
@@ -44,7 +41,7 @@ export const normalizeProduct = (p: any): Product => {
     unit: (p.unit || 'kg') as Product['unit'],
     indicativePrice: typeof p.indicativePrice === 'number' ? p.indicativePrice : (Number(p.indicativePrice) || 500),
     images: validImages.length > 0 ? validImages : ['/products/placeholder.jpg'],
-    allergens: Array.isArray(p.allergens) ? p.allergens : ['milk'],
+    allergens: Array.isArray(p.allergens) && p.allergens.length > 0 ? p.allergens : ['milk'],
     isFestiveSpecial: Boolean(p.isFestiveSpecial),
     festivalTag: p.festivalTag,
     isPerishable: Boolean(p.isPerishable),
@@ -84,6 +81,7 @@ interface StoreContextType {
   deleteProduct: (id: string) => Promise<void>;
   toggleVisibility: (id: string, isVisible: boolean) => Promise<void>;
   toggleFestive: (id: string, isFestive: boolean) => Promise<void>;
+  syncNow: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -143,62 +141,80 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  const syncFirestoreToState = (liveProducts: any[]) => {
-    if (Array.isArray(liveProducts) && liveProducts.length > 0) {
-      const clean = normalizeList(liveProducts);
-      setAdminProducts(clean);
-      setProducts(clean.filter((p) => p.isVisible));
+  const applyCloudList = useCallback((cloudList: Product[]) => {
+    if (!Array.isArray(cloudList) || cloudList.length === 0) return;
+    const clean = normalizeList(cloudList);
+
+    setAdminProducts((prev) => {
+      // Check if data actually changed to avoid unnecessary re-renders
+      if (
+        prev.length === clean.length &&
+        JSON.stringify(prev.map(p => ({ id: p.id, p: p.indicativePrice, v: p.isVisible, u: p.updatedAt }))) ===
+        JSON.stringify(clean.map(p => ({ id: p.id, p: p.indicativePrice, v: p.isVisible, u: p.updatedAt })))
+      ) {
+        return prev;
+      }
       persistLocally(clean);
-    }
-  };
+      return clean;
+    });
 
-  // Real-Time Cloud Firestore Synchronization
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
+    setProducts((prev) => {
+      const visible = clean.filter((p) => p.isVisible);
+      if (
+        prev.length === visible.length &&
+        JSON.stringify(prev.map(p => ({ id: p.id, p: p.indicativePrice, u: p.updatedAt }))) ===
+        JSON.stringify(visible.map(p => ({ id: p.id, p: p.indicativePrice, u: p.updatedAt })))
+      ) {
+        return prev;
+      }
+      return visible;
+    });
+  }, []);
+
+  // Sync with Cloud Firestore
+  const syncNow = useCallback(async () => {
     try {
-      unsubscribe = subscribeProducts((liveProducts) => {
-        syncFirestoreToState(liveProducts);
-      });
-    } catch (e) {
-      console.warn('Firestore subscription notice:', e);
+      const live = await fetchAllProductsFromFirestore();
+      if (live && live.length > 0) {
+        applyCloudList(live);
+      }
+    } catch (err) {
+      console.warn('Cloud sync note:', err);
     }
+  }, [applyCloudList]);
 
-    // Re-fetch on mobile browser focus or app switch
+  // Real-Time Auto-Polling (Every 2.5 seconds) + Focus/Tab Listeners
+  useEffect(() => {
+    // 1. Initial Cloud Sync & Seed
+    syncNow();
+    seedFirestoreIfEmpty().then(syncNow);
+
+    // 2. Continuous Background Poll (every 2.5 seconds)
+    const pollInterval = setInterval(() => {
+      syncNow();
+    }, 2500);
+
+    // 3. Instant sync when browser tab gains focus or app is opened on mobile
     const handleFocus = () => {
-      fetchAllFirestoreProducts()
-        .then(syncFirestoreToState)
-        .catch(() => {});
+      syncNow();
     };
 
     window.addEventListener('focus', handleFocus);
     window.addEventListener('visibilitychange', handleFocus);
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('visibilitychange', handleFocus);
     };
-  }, []);
+  }, [syncNow]);
 
   const loadProducts = async () => {
-    try {
-      const live = await fetchAllFirestoreProducts();
-      syncFirestoreToState(live);
-    } catch {
-      try {
-        const data = await api.getProducts();
-        if (Array.isArray(data) && data.length > 0) {
-          syncFirestoreToState(data);
-        }
-      } catch {}
-    }
+    await syncNow();
   };
 
   const loadAdminProducts = async () => {
-    try {
-      const live = await fetchAllFirestoreProducts();
-      syncFirestoreToState(live);
-    } catch {}
+    await syncNow();
   };
 
   // Auth Handlers
@@ -209,7 +225,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     localStorage.setItem('slsm_token', res.token);
     localStorage.setItem('slsm_user', JSON.stringify(res.user));
     setIsAdminView(true);
-    await loadAdminProducts();
+    await syncNow();
   };
 
   const logout = () => {
@@ -220,12 +236,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsAdminView(false);
   };
 
-  // 1. Create Product (Optimistic Instant Update + Firestore + Local Storage)
+  // 1. Create Product (Instant Optimistic Local + Instant Cloud REST Broadcast)
   const createProduct = async (productData: Partial<Product>): Promise<Product> => {
     if (!token) throw new Error('Admin authentication required');
-    const newProduct = normalizeProduct(productData);
+    const newProduct = normalizeProduct({
+      ...productData,
+      updatedAt: new Date().toISOString()
+    });
 
-    // Instant optimistic update
+    // Instant local state update
     setAdminProducts((prev) => {
       const updated = [newProduct, ...prev.filter((p) => p.id !== newProduct.id)];
       persistLocally(updated);
@@ -236,22 +255,20 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== newProduct.id)]);
     }
 
-    // Cloud Firestore Sync
+    // Instant Cloud Firestore REST Write
     try {
-      await createProductInFirestore(newProduct);
+      await saveProductToFirestore(newProduct);
     } catch (err) {
-      console.warn('Firestore write warning:', err);
+      console.error('Cloud Firestore write failed:', err);
     }
 
-    // API Sync
-    try {
-      await api.createProduct(newProduct, token);
-    } catch {}
+    // Background verification
+    setTimeout(syncNow, 1000);
 
     return newProduct;
   };
 
-  // 2. Update Product (Optimistic Instant Update + Firestore + Local Storage)
+  // 2. Update Product (Instant Optimistic Local + Instant Cloud REST Broadcast)
   const updateProduct = async (id: string, updates: Partial<Product>): Promise<Product> => {
     if (!token) throw new Error('Admin authentication required');
 
@@ -260,7 +277,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setAdminProducts((prev) => {
       const nextList = prev.map((p) => {
         if (p.id === id) {
-          updatedItem = normalizeProduct({ ...p, ...updates });
+          updatedItem = normalizeProduct({
+            ...p,
+            ...updates,
+            updatedAt: new Date().toISOString()
+          });
           return updatedItem;
         }
         return p;
@@ -271,24 +292,23 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     setProducts((prev) => {
       return prev
-        .map((p) => (p.id === id ? normalizeProduct({ ...p, ...updates }) : p))
+        .map((p) => (p.id === id ? normalizeProduct({ ...p, ...updates, updatedAt: new Date().toISOString() }) : p))
         .filter((p) => p.isVisible);
     });
 
+    const finalProduct = updatedItem || normalizeProduct({ id, ...updates, updatedAt: new Date().toISOString() });
+
     try {
-      await updateProductInFirestore(id, updates);
+      await saveProductToFirestore(finalProduct);
     } catch (err) {
-      console.warn('Firestore update warning:', err);
+      console.error('Cloud Firestore update failed:', err);
     }
 
-    try {
-      await api.updateProduct(id, updates, token);
-    } catch {}
-
-    return updatedItem || normalizeProduct({ id, ...updates });
+    setTimeout(syncNow, 1000);
+    return finalProduct;
   };
 
-  // 3. Delete Product (Optimistic Instant Update + Firestore + Local Storage)
+  // 3. Delete Product (Instant Optimistic Local + Instant Cloud REST Broadcast)
   const deleteProduct = async (id: string): Promise<void> => {
     if (!token) throw new Error('Admin authentication required');
 
@@ -301,14 +321,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setProducts((prev) => prev.filter((p) => p.id !== id));
 
     try {
-      await deleteProductInFirestore(id);
+      await deleteProductFromFirestore(id);
     } catch (err) {
-      console.warn('Firestore delete warning:', err);
+      console.error('Cloud Firestore delete failed:', err);
     }
 
-    try {
-      await api.deleteProduct(id, token);
-    } catch {}
+    setTimeout(syncNow, 1000);
   };
 
   // 4. Toggle Visibility
@@ -347,7 +365,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         updateProduct,
         deleteProduct,
         toggleVisibility,
-        toggleFestive
+        toggleFestive,
+        syncNow
       }}
     >
       {children}
