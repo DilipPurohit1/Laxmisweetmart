@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Exactly identical to the logo: Pure, elegant Devanagari श्री in White #FFFFFF for dark browser tabs -->
+  <text
+    x="32"
+    y="48"
+    font-family="'Rozha One', 'Noto Serif Devanagari', 'Mangal', 'Times New Roman', serif"
+    font-size="48"
+    font-weight="bold"
+    fill="#FFFFFF"
+    text-anchor="middle"
+  >
+    श्री
+  </text>
+</svg>

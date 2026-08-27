@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-ivory: #F8F3EA;
+    --bg-cream: #FFFDF8;
+    --brand-maroon: #6E1824;
+    --brand-gold: #C89B3C;
+    --text-charcoal: #241A17;
+    --border-linen: #E9DED0;
+  }
+
+  body {
+    background-color: var(--bg-ivory);
+    color: var(--text-charcoal);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-editorial {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-devanagari {
+    font-family: 'Rozha One', serif;
+  }
+}
+
+/* ========================================================================= */
+/* SMOOTH 60FPS FESTIVAL GRAPHIC ELEMENT KEYFRAMES */
+/* ========================================================================= */
+
+/* 1. DIWALI: Flickering Flame & Rising Embers */
+@keyframes diyaFlame {
+  0%, 100% {
+    transform: scaleY(1) scaleX(1) rotate(-1deg);
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 16px rgba(245, 158, 11, 0.7));
+  }
+  25% {
+    transform: scaleY(1.2) scaleX(0.9) rotate(2deg);
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 1)) drop-shadow(0 0 22px rgba(234, 88, 12, 0.85));
+  }
+  50% {
+    transform: scaleY(0.9) scaleX(1.1) rotate(-2deg);
+    filter: drop-shadow(0 0 7px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 14px rgba(245, 158, 11, 0.6));
+  }
+  75% {
+    transform: scaleY(1.15) scaleX(0.95) rotate(1deg);
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 1)) drop-shadow(0 0 18px rgba(245, 158, 11, 0.75));
+  }
+}
+
+@keyframes riseSparks {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(20px, -240px, 0) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* 2. GANESH CHATURTHI: Modak Halo & Falling Marigold Petals */
+@keyframes modakPulse {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+  }
+  50% {
+    transform: translate3d(0, -5px, 0) scale(1.06);
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.6));
+  }
+}
+
+@keyframes fallMarigold {
+  0% {
+    transform: translate3d(0, -30px, 0) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(50px, 360px, 0) rotate(360deg) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* 3. HOLI: Popping Colors & Powder Splashes */
+@keyframes holiPop {
+  0% {
+    transform: scale(0.4) rotate(0deg);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.15) rotate(10deg);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1) rotate(-5deg);
+    opacity: 0.7;
+  }
+  80% {
+    transform: scale(1.2) rotate(15deg);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.4) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes holiDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(40px, -200px, 0) scale(1.2) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+/* 4. JANMASHTAMI: Dahi Handi Sway & Dripping Butter */
+@keyframes handiSway {
+  0%, 100% {
+    transform: rotate(-6deg);
+    transform-origin: top center;
+  }
+  50% {
+    transform: rotate(6deg);
+    transform-origin: top center;
+  }
+}
+
+@keyframes butterDrip {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.8);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(0, 60px, 0) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes peacockGlow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 0 6px #38BDF8);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0) scale(1.08);
+    filter: drop-shadow(0 0 14px #67E8F9) drop-shadow(0 0 22px #38BDF8);
+  }
+}
+
+/* 5. INDEPENDENCE DAY: Fluttering Tiranga Flags & Confetti */
+@keyframes flagWave {
+  0%, 100% {
+    transform: skewY(0deg) scaleY(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  }
+  50% {
+    transform: skewY(3deg) scaleY(0.96);
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+  }
+}
+
+@keyframes tricolorFloat {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(30px, -220px, 0) rotate(270deg);
+    opacity: 0;
+  }
+}
+
+/* 6. NAVRATRI: Dandiya Clacking & Radiating Celebration Sparklers */
+@keyframes dandiyaClack {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-8deg) scale(1.05);
+    filter: drop-shadow(0 0 12px #F59E0B);
+  }
+  50% {
+    transform: rotate(0deg) scale(1);
+  }
+  75% {
+    transform: rotate(8deg) scale(1.05);
+    filter: drop-shadow(0 0 12px #EF4444);
+  }
+}
+
+@keyframes fireworkBurst {
+  0%, 100% {
+    transform: scale(0.6);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.35) rotate(45deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #F59E0B) drop-shadow(0 0 20px #EF4444);
+  }
+}
+
+/* 7. RAKSHA BANDHAN: Rakhi Floating & Silk Shimmer */
+@keyframes rakhiFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.7));
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) rotate(5deg);
+    filter: drop-shadow(0 0 16px rgba(253, 224, 71, 1)) drop-shadow(0 0 26px rgba(244, 63, 94, 0.8));
+  }
+}
+
+/* Utility animation classes */
+.anim-diya-flame {
+  animation: diyaFlame 1.8s infinite ease-in-out;
+  transform-origin: bottom center;
+}
+.anim-spark {
+  animation: riseSparks 3.5s infinite linear;
+}
+.anim-modak-pulse {
+  animation: modakPulse 2.2s infinite ease-in-out;
+}
+.anim-marigold-petal {
+  animation: fallMarigold 4.8s infinite ease-in-out;
+}
+.anim-holi-pop {
+  animation: holiPop 3s infinite ease-in-out;
+}
+.anim-holi-drift {
+  animation: holiDrift 3.5s infinite linear;
+}
+.anim-handi-sway {
+  animation: handiSway 3s infinite ease-in-out;
+}
+.anim-butter-drip {
+  animation: butterDrip 2s infinite linear;
+}
+.anim-peacock-glow {
+  animation: peacockGlow 2.5s infinite ease-in-out;
+}
+.anim-flag-wave {
+  animation: flagWave 2.8s infinite ease-in-out;
+}
+.anim-tricolor-float {
+  animation: tricolorFloat 4s infinite linear;
+}
+.anim-dandiya-clack {
+  animation: dandiyaClack 2.4s infinite ease-in-out;
+}
+.anim-firework-burst {
+  animation: fireworkBurst 2s infinite ease-in-out;
+}
+.anim-rakhi-float {
+  animation: rakhiFloat 2.8s infinite ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F3EA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8CEBE;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C89B3C;
+}

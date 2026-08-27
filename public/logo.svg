@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%">
+  <!-- White Circular Background -->
+  <circle cx="150" cy="150" r="148" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+  
+  <g fill="#D32F2F" stroke="none">
+    <!-- 7 Arched Red Stars -->
+    <!-- Star 1 (Far Left) -->
+    <path d="M 75 145 L 78.5 137.5 L 86 137.5 L 80 142.5 L 82.5 150 L 75 145.5 L 67.5 150 L 70 142.5 L 64 137.5 L 71.5 137.5 Z" />
+    
+    <!-- Star 2 -->
+    <path d="M 94 125 L 97.5 117.5 L 105 117.5 L 99 122.5 L 101.5 130 L 94 125.5 L 86.5 130 L 89 122.5 L 83 117.5 L 90.5 117.5 Z" />
+    
+    <!-- Star 3 -->
+    <path d="M 119 110 L 122.5 102.5 L 130 102.5 L 124 107.5 L 126.5 115 L 119 110.5 L 111.5 115 L 114 107.5 L 108 102.5 L 115.5 102.5 Z" />
+    
+    <!-- Star 4 (Top Center) -->
+    <path d="M 150 102 L 153.5 94.5 L 161 94.5 L 155 99.5 L 157.5 107 L 150 102.5 L 142.5 107 L 145 99.5 L 139 94.5 L 146.5 94.5 Z" />
+    
+    <!-- Star 5 -->
+    <path d="M 181 110 L 184.5 102.5 L 192 102.5 L 186 107.5 L 188.5 115 L 181 110.5 L 173.5 115 L 176 107.5 L 170 102.5 L 177.5 102.5 Z" />
+    
+    <!-- Star 6 -->
+    <path d="M 206 125 L 209.5 117.5 L 217 117.5 L 211 122.5 L 213.5 130 L 206 125.5 L 198.5 130 L 201 122.5 L 195 117.5 L 202.5 117.5 Z" />
+    
+    <!-- Star 7 (Far Right) -->
+    <path d="M 225 145 L 228.5 137.5 L 236 137.5 L 230 142.5 L 232.5 150 L 225 145.5 L 217.5 150 L 220 142.5 L 214 137.5 L 221.5 137.5 Z" />
+  </g>
+
+  <!-- Red Devanagari श्री -->
+  <text x="150" y="146" font-family="'Rozha One', 'Noto Serif Devanagari', 'Mangal', 'Georgia', serif" font-size="28" font-weight="bold" fill="#D32F2F" text-anchor="middle">श्री</text>
+
+  <!-- Red LAXMI SWEET MART -->
+  <text x="150" y="172" font-family="'Times New Roman', 'Playfair Display', Georgia, serif" font-size="19" font-weight="900" letter-spacing="1" fill="#D32F2F" text-anchor="middle">LAXMI SWEET MART</text>
+</svg>
