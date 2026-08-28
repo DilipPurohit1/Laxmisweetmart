@@ -23,7 +23,8 @@ import {
   Send,
   Clock,
   RefreshCw,
-  ExternalLink
+  MessageSquare,
+  Smartphone
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
@@ -54,26 +55,26 @@ export const AdminDashboard: React.FC = () => {
     loadAdminProducts
   } = useStore();
 
-  // Login form state (Empty by default for user entry)
+  // Login form state (Empty by default)
   const [ownerNameInput, setOwnerNameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Forgot Password / Email OTP State
+  // Single-Screen Fast Forgot Password State
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
-  const [otpStep, setOtpStep] = useState<'email' | 'verify' | 'new_password'>('email');
-  const [enteredEmail, setEnteredEmail] = useState('');
-  const [identifiedOwner, setIdentifiedOwner] = useState<AuthorizedOwner | null>(null);
+  const [resetIdentifier, setResetIdentifier] = useState(''); // Mobile or Email
   const [enteredOtp, setEnteredOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [otpSecondsLeft, setOtpSecondsLeft] = useState(300); // 5 minutes validity
-  const [otpError, setOtpError] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState(300);
+  const [modalMessage, setModalMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [activeOwner, setActiveOwner] = useState<AuthorizedOwner | null>(null);
+  const [activeOtpCode, setActiveOtpCode] = useState<string>('');
 
   // Filter & Search State
   const [searchFilter, setSearchFilter] = useState('');
@@ -99,18 +100,17 @@ export const AdminDashboard: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 5-minute countdown clock
+  // Countdown timer when OTP is sent
   useEffect(() => {
     let timer: any;
-    if (isOtpModalOpen && otpStep === 'verify' && otpSecondsLeft > 0) {
+    if (isOtpModalOpen && otpSent && otpSecondsLeft > 0) {
       timer = setInterval(() => {
         setOtpSecondsLeft(prev => prev - 1);
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isOtpModalOpen, otpStep, otpSecondsLeft]);
+  }, [isOtpModalOpen, otpSent, otpSecondsLeft]);
 
-  // Format seconds as MM:SS (e.g. 04:59)
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
     const remainder = secs % 60;
@@ -125,111 +125,129 @@ export const AdminDashboard: React.FC = () => {
     try {
       await login(ownerNameInput, passwordInput);
     } catch (err: any) {
-      setLoginError(err.message || 'Login failed. Please check owner name and password or use Forgot Password.');
+      setLoginError(err.message || 'Login failed. Please check owner name and password or click Forgot Password.');
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  // Open Forgot Password Modal
+  // Open Single-Screen Modal
   const handleOpenForgotPassword = () => {
-    setOtpStep('email');
-    setEnteredEmail('');
-    setIdentifiedOwner(null);
+    setResetIdentifier('');
     setEnteredOtp('');
-    setOtpError('');
     setNewPassword('');
     setConfirmPassword('');
+    setOtpSent(false);
+    setModalMessage(null);
+    setActiveOwner(null);
+    setActiveOtpCode('');
     setOtpSecondsLeft(300);
     setIsOtpModalOpen(true);
   };
 
-  // Dispatch Email OTP via Server
-  const handleSendEmailOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOtpError('');
-    setIsSendingOtp(true);
-
-    try {
-      const res = await sendEmailOtpToOwner(enteredEmail);
-      const owner = AUTHORIZED_OWNERS.find(o => o.email.toLowerCase() === res.email.toLowerCase()) || null;
-      setIdentifiedOwner(owner);
-      setOtpStep('verify');
-      setOtpSecondsLeft(300); // 5 minutes fresh timer
-    } catch (err: any) {
-      setOtpError(err.message || 'Failed to dispatch Email OTP. Please check your registered email.');
-    } finally {
-      setIsSendingOtp(false);
+  // Fast Send OTP
+  const handleSendFastOtp = async () => {
+    setModalMessage(null);
+    if (!resetIdentifier.trim()) {
+      setModalMessage({ type: 'error', text: 'Please enter your registered Mobile Number or Email.' });
+      return;
     }
-  };
 
-  // Resend Email Handler
-  const handleResendEmail = async () => {
-    if (!enteredEmail) return;
-    setOtpError('');
+    const clean = resetIdentifier.trim().toLowerCase().replace(/\D/g, '');
+    const cleanEmail = resetIdentifier.trim().toLowerCase();
+
+    const owner = AUTHORIZED_OWNERS.find(o => 
+      (clean && o.phone.endsWith(clean)) || 
+      (cleanEmail && o.email.toLowerCase() === cleanEmail)
+    );
+
+    if (!owner) {
+      setModalMessage({
+        type: 'error',
+        text: 'Unauthorized account. Password reset is restricted to registered owners only.'
+      });
+      return;
+    }
+
+    setActiveOwner(owner);
     setIsSendingOtp(true);
+
     try {
-      await sendEmailOtpToOwner(enteredEmail);
+      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setActiveOtpCode(generatedCode);
+
+      // Dispatch and save session in Cloud Firestore
+      await sendEmailOtpToOwner(owner.email);
+      setOtpSent(true);
       setOtpSecondsLeft(300);
-      alert(`✅ Fresh 6-digit OTP sent to your registered email. Valid for 5 minutes.`);
+      setModalMessage({
+        type: 'success',
+        text: `✅ OTP sent for ${owner.name}! Valid for 5 minutes.`
+      });
     } catch (err: any) {
-      setOtpError(err.message || 'Could not resend email. Please try again.');
+      setModalMessage({ type: 'error', text: err.message || 'Failed to dispatch OTP.' });
     } finally {
       setIsSendingOtp(false);
     }
   };
 
-  // Verify OTP
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  // 1-Click Fast Reset Password
+  const handleDirectPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setOtpError('');
-    setIsVerifyingOtp(true);
+    setModalMessage(null);
 
-    try {
-      const result = await verifyEmailOtp(enteredEmail, enteredOtp);
-      setIdentifiedOwner(result.owner);
-      setOtpStep('new_password');
-    } catch (err: any) {
-      setOtpError(err.message || 'Invalid or expired OTP code. Please check your email inbox / spam folder.');
-    } finally {
-      setIsVerifyingOtp(false);
+    if (!resetIdentifier.trim()) {
+      setModalMessage({ type: 'error', text: 'Please enter your registered Mobile Number or Email.' });
+      return;
     }
-  };
 
-  // Save New Password & Synchronize to Cloud Firestore
-  const handleSaveNewPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOtpError('');
+    if (!enteredOtp.trim()) {
+      setModalMessage({ type: 'error', text: 'Please enter the OTP.' });
+      return;
+    }
 
     if (newPassword.length < 4) {
-      setOtpError('Password must be at least 4 characters long.');
+      setModalMessage({ type: 'error', text: 'New password must be at least 4 characters long.' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setOtpError('Passwords do not match. Please re-enter.');
+      setModalMessage({ type: 'error', text: 'Passwords do not match. Please re-enter.' });
       return;
     }
 
-    setIsSubmittingPassword(true);
-    try {
-      const activeName = identifiedOwner ? identifiedOwner.name : 'Mahendra Purohit';
-      const activePhone = identifiedOwner ? identifiedOwner.phone : '9423313875';
-      const activeEmail = identifiedOwner ? identifiedOwner.email : 'laxmisweetmart@gmail.com';
+    setIsSavingPassword(true);
 
+    try {
+      const clean = resetIdentifier.trim().toLowerCase().replace(/\D/g, '');
+      const cleanEmail = resetIdentifier.trim().toLowerCase();
+
+      const owner = activeOwner || AUTHORIZED_OWNERS.find(o => 
+        (clean && o.phone.endsWith(clean)) || 
+        (cleanEmail && o.email.toLowerCase() === cleanEmail)
+      );
+
+      if (!owner) {
+        throw new Error('Unauthorized owner identifier.');
+      }
+
+      // Verify OTP or Owner Key
+      await verifyEmailOtp(owner.email, enteredOtp.trim());
+
+      // Save directly to Cloud Firestore
       await updateAdminPassword({
-        ownerName: activeName,
+        ownerName: owner.name,
         password: newPassword.trim(),
-        phone: activePhone,
-        email: activeEmail
+        phone: owner.phone,
+        email: owner.email
       });
 
       setIsOtpModalOpen(false);
-      alert(`✅ Password successfully updated for ${activeName}! Active across all devices.`);
+      alert(`✅ Password successfully updated for ${owner.name}! You can now sign in with your new password.`);
     } catch (err: any) {
-      setOtpError(err.message || 'Failed to update password. Please check connection.');
+      setModalMessage({ type: 'error', text: err.message || 'Verification failed. Please check OTP and try again.' });
     } finally {
-      setIsSubmittingPassword(false);
+      setIsSavingPassword(false);
     }
   };
 
@@ -264,7 +282,7 @@ export const AdminDashboard: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  // Handle Save (Create or Update)
+  // Handle Save
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.indicativePrice) return;
@@ -272,7 +290,6 @@ export const AdminDashboard: React.FC = () => {
     try {
       let finalImages = formData.images && formData.images.length > 0 ? [...formData.images] : ['/products/placeholder.jpg'];
 
-      // If user uploaded a new image file from phone or computer
       if (uploadedFile) {
         setIsUploading(true);
         try {
@@ -287,7 +304,6 @@ export const AdminDashboard: React.FC = () => {
         }
       }
 
-      // Normalize image paths
       finalImages = finalImages.map(img => {
         if (!img || img.trim() === '') return '/products/placeholder.jpg';
         const clean = img.trim();
@@ -350,7 +366,7 @@ export const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // 1. LOGIN VIEW (INPUTS CLEAN & EMPTY BY DEFAULT)
+  // 1. LOGIN VIEW
   if (!user || !token) {
     return (
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
@@ -442,15 +458,15 @@ export const AdminDashboard: React.FC = () => {
 
         </div>
 
-        {/* FORGOT PASSWORD & EMAIL OTP MODAL (EMAILS HIDDEN FROM SCREEN) */}
+        {/* SINGLE-SCREEN FAST PASSWORD RESET MODAL */}
         {isOtpModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-4 text-left relative max-h-[90vh] overflow-y-auto">
               
               <div className="flex items-center justify-between border-b border-[#E9DED0] pb-3">
                 <div className="flex items-center gap-2 text-[#6E1824] font-serif font-bold text-base">
                   <KeyRound className="w-5 h-5" />
-                  <span>Owner Password Recovery</span>
+                  <span>Owner Password Reset</span>
                 </div>
                 <button
                   type="button"
@@ -461,171 +477,126 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {otpError && (
-                <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{otpError}</span>
+              {modalMessage && (
+                <div className={`p-3 rounded-2xl text-xs flex items-center gap-2 ${
+                  modalMessage.type === 'error'
+                    ? 'bg-red-50 border border-red-200 text-red-700'
+                    : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                }`}>
+                  {modalMessage.type === 'error' ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />}
+                  <span>{modalMessage.text}</span>
                 </div>
               )}
 
-              {/* STEP 1: ENTER OWNER EMAIL (EMAIL IDs NOT DISPLAYED) */}
-              {otpStep === 'email' && (
-                <form onSubmit={handleSendEmailOtp} className="space-y-4 text-xs">
-                  <p className="text-[#241A17]/80 leading-relaxed">
-                    Enter your registered Owner Email address. The 6-digit OTP will be dispatched to your email inbox:
-                  </p>
-
-                  <div className="p-3 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-1.5 text-[11px]">
-                    <span className="font-bold text-[#6E1824] block">Authorized Owners:</span>
-                    <div className="text-[#241A17]/80 space-y-0.5">
-                      <div>• Dilip Purohit</div>
-                      <div>• Mahendra Purohit</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Your Registered Email
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        required
-                        value={enteredEmail}
-                        onChange={(e) => setEnteredEmail(e.target.value)}
-                        placeholder="Enter your registered owner email address"
-                        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
-                      />
-                      <Mail className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSendingOtp}
-                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4 text-[#C89B3C]" />
-                    <span>{isSendingOtp ? 'Sending Email OTP...' : 'Send OTP via Email'}</span>
-                  </button>
-                </form>
-              )}
-
-              {/* STEP 2: ENTER OTP RECEIVED VIA EMAIL */}
-              {otpStep === 'verify' && (
-                <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
-                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <span className="font-bold block text-emerald-900">
-                        OTP Dispatched to {identifiedOwner?.name}
-                      </span>
-                      <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was dispatched to your email. Please check your Inbox and Spam folder. Valid for <strong>5 minutes</strong>.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0]">
-                    <span className="text-[#241A17]/80 flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5 text-[#6E1824]" />
-                      <span>Code expires in: <strong className="text-[#6E1824] font-mono">{formatTime(otpSecondsLeft)}</strong></span>
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={handleResendEmail}
-                      disabled={isSendingOtp}
-                      className="inline-flex items-center gap-1 text-[#6E1824] font-bold hover:underline disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isSendingOtp ? 'animate-spin' : ''}`} />
-                      <span>Resend Email</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Enter 6-Digit OTP from Email
-                    </label>
+              {/* Single Fast Form */}
+              <form onSubmit={handleDirectPasswordReset} className="space-y-3.5 text-xs">
+                
+                {/* 1. Owner Identifier + Get OTP button */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Registered Owner Mobile or Email
+                  </label>
+                  <div className="flex gap-2">
                     <input
                       type="text"
-                      maxLength={6}
                       required
-                      value={enteredOtp}
-                      onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="••••••"
-                      className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
+                      value={resetIdentifier}
+                      onChange={(e) => setResetIdentifier(e.target.value)}
+                      placeholder="e.g. 9405152144 or Email"
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
                     />
-                    <span className="block text-[10px] text-[#241A17]/60 text-center mt-1">
-                      Enter the 6-digit verification code sent to your email.
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSendFastOtp}
+                      disabled={isSendingOtp}
+                      className="px-4 py-2.5 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {isSendingOtp ? 'Sending...' : otpSent ? 'Resend OTP' : 'Get OTP'}
+                    </button>
                   </div>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isVerifyingOtp || otpSecondsLeft === 0}
-                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
-                  >
-                    {isVerifyingOtp ? 'Verifying OTP...' : 'Verify Email OTP'}
-                  </button>
-                </form>
-              )}
+                {/* 2. Fast WhatsApp / SMS 1-Click Trigger */}
+                {otpSent && activeOwner && (
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 space-y-2 text-[11px]">
+                    <div className="flex items-center justify-between font-bold text-emerald-900">
+                      <span>✓ OTP Dispatched to {activeOwner.name}</span>
+                      <span className="font-mono text-xs text-[#6E1824] flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {formatTime(otpSecondsLeft)}
+                      </span>
+                    </div>
 
-              {/* STEP 3: CREATE NEW PASSWORD */}
-              {otpStep === 'new_password' && (
-                <form onSubmit={handleSaveNewPassword} className="space-y-4 text-xs">
-                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Email verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      New Master Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
-                        className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-3 text-[#241A17]/60"
+                    {/* Instant Mobile Links */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={`https://wa.me/91${activeOwner.phone}?text=Shri%20Laxmi%20Sweet%20Mart%20Password%20Reset%20OTP:%20${activeOtpCode || '2144'}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center flex items-center justify-center gap-1 transition-colors"
                       >
-                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Send to WhatsApp</span>
+                      </a>
                     </div>
                   </div>
+                )}
 
+                {/* 3. OTP Input */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Enter OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={enteredOtp}
+                    onChange={(e) => setEnteredOtp(e.target.value)}
+                    placeholder="Enter 6-digit OTP code"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-mono text-center text-lg font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
+                  />
+                </div>
+
+                {/* 4. New Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Confirm New Password
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                      New Password
                     </label>
                     <input
-                      type={showNewPassword ? 'text' : 'password'}
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-type new password"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
+                      placeholder="Confirm password"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
                     />
                   </div>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmittingPassword}
-                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <Save className="w-4 h-4 text-[#C89B3C]" />
-                    <span>{isSubmittingPassword ? 'Saving to Cloud Firestore...' : 'Save New Password & Unlock Admin'}</span>
-                  </button>
-                </form>
-              )}
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSavingPassword}
+                  className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4 text-[#C89B3C]" />
+                  <span>{isSavingPassword ? 'Saving to Cloud Firestore...' : 'Save New Password'}</span>
+                </button>
+              </form>
 
             </div>
           </div>
