@@ -22,7 +22,8 @@ import {
   CheckCircle2,
   Send,
   Clock,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
@@ -170,7 +171,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       await sendEmailOtpToOwner(enteredEmail);
       setOtpSecondsLeft(300);
-      alert(`✅ Fresh 6-digit OTP sent to ${identifiedOwner?.email || 'your email'}. Valid for 5 minutes.`);
+      alert(`✅ Fresh 6-digit OTP sent to your registered email. Valid for 5 minutes.`);
     } catch (err: any) {
       setOtpError(err.message || 'Could not resend email. Please try again.');
     } finally {
@@ -441,7 +442,7 @@ export const AdminDashboard: React.FC = () => {
 
         </div>
 
-        {/* FORGOT PASSWORD & EMAIL OTP MODAL */}
+        {/* FORGOT PASSWORD & EMAIL OTP MODAL (EMAILS HIDDEN FROM SCREEN) */}
         {isOtpModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
@@ -467,24 +468,18 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: ENTER OWNER EMAIL */}
+              {/* STEP 1: ENTER OWNER EMAIL (EMAIL IDs NOT DISPLAYED) */}
               {otpStep === 'email' && (
                 <form onSubmit={handleSendEmailOtp} className="space-y-4 text-xs">
                   <p className="text-[#241A17]/80 leading-relaxed">
-                    Enter your registered Owner Email address. The 6-digit OTP will be sent directly to your email inbox:
+                    Enter your registered Owner Email address. The 6-digit OTP will be dispatched to your email inbox:
                   </p>
 
                   <div className="p-3 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-1.5 text-[11px]">
                     <span className="font-bold text-[#6E1824] block">Authorized Owners:</span>
-                    <div className="text-[#241A17]/80 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span>• Dilip Purohit</span>
-                        <strong className="font-mono text-[10px] text-[#6E1824]">imdilippurohit@gmail.com</strong>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>• Mahendra Purohit</span>
-                        <strong className="font-mono text-[10px] text-[#6E1824]">laxmisweetmart@gmail.com</strong>
-                      </div>
+                    <div className="text-[#241A17]/80 space-y-0.5">
+                      <div>• Dilip Purohit</div>
+                      <div>• Mahendra Purohit</div>
                     </div>
                   </div>
 
@@ -498,7 +493,7 @@ export const AdminDashboard: React.FC = () => {
                         required
                         value={enteredEmail}
                         onChange={(e) => setEnteredEmail(e.target.value)}
-                        placeholder="imdilippurohit@gmail.com or laxmisweetmart@gmail.com"
+                        placeholder="Enter your registered owner email address"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
                       />
                       <Mail className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
@@ -523,10 +518,10 @@ export const AdminDashboard: React.FC = () => {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <span className="font-bold block text-emerald-900">
-                        OTP Dispatched to {identifiedOwner?.name} ({identifiedOwner?.email})
+                        OTP Dispatched to {identifiedOwner?.name}
                       </span>
                       <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was sent to your email. Check your Inbox / Spam folder. Valid for <strong>5 minutes</strong>.
+                        A 6-digit security code was dispatched to your email. Please check your Inbox and Spam folder. Valid for <strong>5 minutes</strong>.
                       </span>
                     </div>
                   </div>
@@ -562,7 +557,7 @@ export const AdminDashboard: React.FC = () => {
                       className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
                     />
                     <span className="block text-[10px] text-[#241A17]/60 text-center mt-1">
-                      Enter the 6-digit verification code sent to your email inbox.
+                      Enter the 6-digit verification code sent to your email.
                     </span>
                   </div>
 
