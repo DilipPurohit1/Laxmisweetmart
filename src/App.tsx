@@ -49,19 +49,26 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, { hasError:
   }
 }
 
+import { startAnimatedSweetFavicon } from './utils/animatedFavicon';
+
 export const AppContent: React.FC = () => {
   const { isAdminView } = useStore();
 
-  // Ensure page always starts at the top on load/refresh and set dynamic tab title
+  // Initialize animated sweets favicon and scroll reset
   useEffect(() => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
+
+    // Start cycling animated sweet icons in browser tab (1.6s interval)
+    startAnimatedSweetFavicon(1600);
   }, []);
 
   useEffect(() => {
-    document.title = 'Laxmi Sweet Mart';
+    document.title = isAdminView 
+      ? '🔒 Owner Portal | Shree Laxmi Sweet Mart' 
+      : 'Shree Laxmi Sweet Mart';
   }, [isAdminView]);
 
   return (
