@@ -1,5 +1,6 @@
 import { Product, User } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialData';
+import { fetchAdminAuth, saveAdminAuth, AdminCredentials } from './firebaseRest';
 
 const API_BASE = '/api';
 
@@ -89,55 +90,102 @@ export const compressImage = (file: File, maxDim = 600, quality = 0.78): Promise
 };
 
 export const api = {
-  // Auth: Supports both live API server and verified offline/client fallback
+  // Check whether Admin Password has been created
+  async getAuthStatus(): Promise<{ isConfigured: boolean; phone: string; email: string; ownerName: string }> {
+    const cloud = await fetchAdminAuth();
+    if (cloud && cloud.isConfigured && cloud.password) {
+      return {
+        isConfigured: true,
+        phone: cloud.phone || '094233 13875',
+        email: cloud.email || 'laxmisweetmart@gmail.com',
+        ownerName: cloud.ownerName || 'Owner'
+      };
+    }
+    return {
+      isConfigured: false,
+      phone: cloud?.phone || '094233 13875',
+      email: cloud?.email || 'laxmisweetmart@gmail.com',
+      ownerName: cloud?.ownerName || 'Owner'
+    };
+  },
+
+  // Dynamic Login verifying against Cloud Firestore
   async login(emailOrName: string, password: string): Promise<{ token: string; user: User }> {
-    const cleanName = emailOrName.trim().toLowerCase();
+    const cleanInput = emailOrName.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // 1. Try Live Backend API Server first (if available)
-    try {
-      const res = await fetch(`http://localhost:5001${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailOrName, password })
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
-
-    // 2. Direct Verified Owner Authentication
-    const isOwner =
-      (cleanName === 'mahendra purohit' ||
-       cleanName === 'admin@shrilaxmisweetmart.com' ||
-       cleanName === 'laxmisweetmart@gmail.com' ||
-       cleanName === 'admin') &&
-      (cleanPass === '123456' || cleanPass === 'admin1985');
-
-    if (isOwner) {
-      const authData = {
-        token: 'slsm-owner-auth-token-1985',
-        user: {
-          id: 'admin-owner-1',
-          fullName: 'Mahendra Purohit',
-          email: 'laxmisweetmart@gmail.com',
-          phone: '094233 13875',
-          role: 'admin' as const
-        }
-      };
-      return authData;
+    if (!cleanInput || !cleanPass) {
+      throw new Error('Please enter both your Owner Name / Email and Password.');
     }
 
-    throw new Error('Invalid Owner Name or Password. Please enter "Mahendra Purohit" and password "123456".');
+    // 1. Fetch live cloud credentials
+    const cloudAuth = await fetchAdminAuth();
+
+    if (!cloudAuth || !cloudAuth.isConfigured || !cloudAuth.password) {
+      throw new Error(
+        'Admin account has not been set up yet. Please use "Setup / Reset Password with OTP" below to create your secure password.'
+      );
+    }
+
+    const nameMatch =
+      cloudAuth.ownerName.toLowerCase() === cleanInput ||
+      cloudAuth.email.toLowerCase() === cleanInput ||
+      cloudAuth.phone.replace(/\s+/g, '') === cleanInput.replace(/\s+/g, '') ||
+      cleanInput === 'admin';
+
+    const passMatch = cloudAuth.password === cleanPass;
+
+    if (nameMatch && passMatch) {
+      const user: User = {
+        id: 'admin-owner-1',
+        fullName: cloudAuth.ownerName || 'Shop Owner',
+        email: cloudAuth.email || 'laxmisweetmart@gmail.com',
+        phone: cloudAuth.phone || '094233 13875',
+        role: 'admin'
+      };
+
+      const token = `slsm-auth-token-${Date.now()}`;
+      return { token, user };
+    }
+
+    throw new Error('Invalid credentials. If you forgot your password, please use "Forgot Password with OTP" below.');
+  },
+
+  // Save / Update Admin Credentials in Cloud Firestore
+  async updateAdminPassword(credentials: {
+    ownerName: string;
+    password: string;
+    phone?: string;
+    email?: string;
+  }): Promise<User> {
+    const payload: AdminCredentials = {
+      ownerName: credentials.ownerName.trim() || 'Owner',
+      password: credentials.password.trim(),
+      phone: credentials.phone?.trim() || '094233 13875',
+      email: credentials.email?.trim() || 'laxmisweetmart@gmail.com',
+      isConfigured: true,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveAdminAuth(payload);
+
+    return {
+      id: 'admin-owner-1',
+      fullName: payload.ownerName,
+      email: payload.email,
+      phone: payload.phone,
+      role: 'admin'
+    };
   },
 
   async getMe(token: string): Promise<User> {
+    const cloud = await fetchAdminAuth();
     if (token) {
       return {
         id: 'admin-owner-1',
-        fullName: 'Mahendra Purohit',
-        email: 'laxmisweetmart@gmail.com',
-        phone: '094233 13875',
+        fullName: cloud?.ownerName || 'Shop Owner',
+        email: cloud?.email || 'laxmisweetmart@gmail.com',
+        phone: cloud?.phone || '094233 13875',
         role: 'admin'
       };
     }

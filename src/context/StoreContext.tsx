@@ -75,6 +75,12 @@ interface StoreContextType {
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
+  updateAdminPassword: (credentials: {
+    ownerName: string;
+    password: string;
+    phone?: string;
+    email?: string;
+  }) => Promise<void>;
   adminProducts: Product[];
   createProduct: (product: Partial<Product>) => Promise<Product>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<Product>;
@@ -228,6 +234,22 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     await syncNow();
   };
 
+  const updateAdminPassword = async (credentials: {
+    ownerName: string;
+    password: string;
+    phone?: string;
+    email?: string;
+  }) => {
+    const updatedUser = await api.updateAdminPassword(credentials);
+    const newToken = `slsm-auth-token-${Date.now()}`;
+    setToken(newToken);
+    setUser(updatedUser);
+    localStorage.setItem('slsm_token', newToken);
+    localStorage.setItem('slsm_user', JSON.stringify(updatedUser));
+    setIsAdminView(true);
+    await syncNow();
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -360,6 +382,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isAdmin,
         login,
         logout,
+        updateAdminPassword,
         adminProducts,
         createProduct,
         updateProduct,

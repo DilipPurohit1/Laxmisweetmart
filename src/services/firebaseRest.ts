@@ -2,7 +2,79 @@ import { Product } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialData';
 
 const FIRESTORE_PROJECT_ID = 'laxmi-sweet-mart';
-const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/products`;
+const FIRESTORE_PRODUCTS_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/products`;
+const FIRESTORE_AUTH_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/settings/admin_auth`;
+
+export interface AdminCredentials {
+  ownerName: string;
+  password: string;
+  phone: string;
+  email: string;
+  isConfigured: boolean;
+  updatedAt: string;
+}
+
+/**
+ * Fetch Admin Credentials from Cloud Firestore
+ */
+export async function fetchAdminAuth(): Promise<AdminCredentials | null> {
+  try {
+    const res = await fetch(FIRESTORE_AUTH_URL, {
+      method: 'GET',
+      headers: { Accept: 'application/json' }
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const doc = await res.json();
+    if (!doc || !doc.fields) return null;
+    const f = doc.fields;
+
+    return {
+      ownerName: f.ownerName?.stringValue || '',
+      password: f.password?.stringValue || '',
+      phone: f.phone?.stringValue || '094233 13875',
+      email: f.email?.stringValue || 'laxmisweetmart@gmail.com',
+      isConfigured: f.isConfigured?.booleanValue ?? false,
+      updatedAt: f.updatedAt?.stringValue || new Date().toISOString()
+    };
+  } catch (e) {
+    console.warn('Could not fetch admin auth from cloud:', e);
+    return null;
+  }
+}
+
+/**
+ * Save / Update Admin Credentials in Cloud Firestore
+ */
+export async function saveAdminAuth(credentials: AdminCredentials): Promise<void> {
+  const payload = {
+    fields: {
+      ownerName: { stringValue: credentials.ownerName.trim() },
+      password: { stringValue: credentials.password.trim() },
+      phone: { stringValue: credentials.phone.trim() },
+      email: { stringValue: credentials.email.trim() },
+      isConfigured: { booleanValue: true },
+      updatedAt: { stringValue: new Date().toISOString() }
+    }
+  };
+
+  const res = await fetch(FIRESTORE_AUTH_URL, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to save admin credentials in cloud: ${err}`);
+  }
+}
 
 /**
  * Converts a Product object into Firestore REST API fields JSON
@@ -99,17 +171,16 @@ function firestoreDocToProduct(doc: any): Product | null {
 }
 
 /**
- * Fetch all live products from Cloud Firestore via standard REST (Zero WebSocket / Shield dependency)
+ * Fetch all live products from Cloud Firestore via standard REST
  */
 export async function fetchAllProductsFromFirestore(): Promise<Product[]> {
   try {
-    const res = await fetch(`${FIRESTORE_BASE_URL}?pageSize=100`, {
+    const res = await fetch(`${FIRESTORE_PRODUCTS_URL}?pageSize=100`, {
       method: 'GET',
       headers: { Accept: 'application/json' }
     });
 
     if (!res.ok) {
-      console.warn(`Firestore REST returned HTTP ${res.status}`);
       return [];
     }
 
@@ -140,7 +211,7 @@ export async function saveProductToFirestore(product: Product): Promise<Product>
   const payload = productToFirestoreFields(product);
   const cleanId = encodeURIComponent(product.id);
 
-  const res = await fetch(`${FIRESTORE_BASE_URL}/${cleanId}`, {
+  const res = await fetch(`${FIRESTORE_PRODUCTS_URL}/${cleanId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -162,7 +233,7 @@ export async function saveProductToFirestore(product: Product): Promise<Product>
  */
 export async function deleteProductFromFirestore(id: string): Promise<void> {
   const cleanId = encodeURIComponent(id);
-  const res = await fetch(`${FIRESTORE_BASE_URL}/${cleanId}`, {
+  const res = await fetch(`${FIRESTORE_PRODUCTS_URL}/${cleanId}`, {
     method: 'DELETE',
     headers: { Accept: 'application/json' }
   });

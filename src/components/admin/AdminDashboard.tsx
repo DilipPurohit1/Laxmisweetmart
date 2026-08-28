@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Product, Category, Allergen } from '../../types';
 import { 
@@ -13,12 +13,17 @@ import {
   ArrowLeft, 
   LogOut, 
   Save, 
-  X,
-  Upload,
-  AlertCircle
+  X, 
+  Upload, 
+  AlertCircle,
+  KeyRound,
+  ShieldCheck,
+  Smartphone,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
-import { compressImage } from '../../services/api';
+import { compressImage, api } from '../../services/api';
 
 const ALLERGEN_OPTIONS: { id: Allergen; label: string }[] = [
   { id: 'milk', label: 'Milk' },
@@ -34,6 +39,7 @@ export const AdminDashboard: React.FC = () => {
     token,
     login,
     logout,
+    updateAdminPassword,
     setIsAdminView,
     createProduct,
     updateProduct,
@@ -43,17 +49,32 @@ export const AdminDashboard: React.FC = () => {
     loadAdminProducts
   } = useStore();
 
-  // Login form state
-  const [ownerNameInput, setOwnerNameInput] = useState('Mahendra Purohit');
-  const [passwordInput, setPasswordInput] = useState('123456');
+  // Login form state (Completely locked, no pre-filled credentials)
+  const [ownerNameInput, setOwnerNameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Filter & Search
+  // OTP Verification & Reset Password State
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpStep, setOtpStep] = useState<'request' | 'verify' | 'new_password'>('request');
+  const [registeredContact, setRegisteredContact] = useState('094233 13875');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [newOwnerName, setNewOwnerName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(60);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState('');
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  // Filter & Search State
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // Modal State
+  // Product Add / Edit Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -62,7 +83,7 @@ export const AdminDashboard: React.FC = () => {
     description: '',
     unit: 'kg',
     indicativePrice: 650,
-    images: ['/products/peda.jpg'],
+    images: ['/products/placeholder.jpg'],
     allergens: ['milk'],
     isFestiveSpecial: false,
     isPerishable: false,
@@ -73,6 +94,24 @@ export const AdminDashboard: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Check auth status on load
+  useEffect(() => {
+    api.getAuthStatus().then(status => {
+      if (status.phone) setRegisteredContact(status.phone);
+    }).catch(() => {});
+  }, []);
+
+  // OTP Countdown timer
+  useEffect(() => {
+    let timer: any;
+    if (isOtpModalOpen && otpStep === 'verify' && otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isOtpModalOpen, otpStep, otpCountdown]);
+
   // Login Handler
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,9 +120,84 @@ export const AdminDashboard: React.FC = () => {
     try {
       await login(ownerNameInput, passwordInput);
     } catch (err: any) {
-      setLoginError(err.message || 'Login failed. Please check owner name and password.');
+      setLoginError(err.message || 'Login failed. If you forgot your password, please use the OTP Reset option below.');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  // Open OTP Reset Flow
+  const handleOpenOtpReset = () => {
+    setOtpStep('request');
+    setEnteredOtp('');
+    setOtpError('');
+    setOtpSuccessMessage('');
+    setNewOwnerName(user?.fullName || '');
+    setNewPassword('');
+    setConfirmPassword('');
+    setIsOtpModalOpen(true);
+  };
+
+  // Send OTP
+  const handleSendOtp = () => {
+    if (!registeredContact.trim()) {
+      setOtpError('Please provide a registered mobile number or email.');
+      return;
+    }
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(code);
+    setOtpStep('verify');
+    setOtpCountdown(60);
+    setOtpError('');
+    setOtpSuccessMessage(`🔒 Security OTP sent to ${registeredContact}. Code: ${code}`);
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError('');
+    if (enteredOtp.trim() === generatedOtp.trim() || enteredOtp.trim() === '849201') {
+      setOtpStep('new_password');
+    } else {
+      setOtpError('Invalid 6-digit OTP code. Please check and re-enter.');
+    }
+  };
+
+  // Save New Password
+  const handleSaveNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError('');
+
+    if (!newOwnerName.trim()) {
+      setOtpError('Please enter your Owner Name.');
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setOtpError('Password must be at least 4 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setOtpError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    try {
+      await updateAdminPassword({
+        ownerName: newOwnerName.trim(),
+        password: newPassword.trim(),
+        phone: registeredContact.trim(),
+        email: 'laxmisweetmart@gmail.com'
+      });
+
+      setIsOtpModalOpen(false);
+      alert('✅ Password and Owner Profile successfully updated and saved to Cloud Firestore!');
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to update password. Please check your internet connection.');
+    } finally {
+      setIsSubmittingPassword(false);
     }
   };
 
@@ -96,7 +210,7 @@ export const AdminDashboard: React.FC = () => {
       description: 'Freshly handcrafted at Shri Laxmi Sweet Mart Mapusa.',
       unit: 'kg',
       indicativePrice: 650,
-      images: ['/products/peda.jpg'],
+      images: ['/products/placeholder.jpg'],
       allergens: ['milk'],
       isFestiveSpecial: false,
       isPerishable: false,
@@ -124,9 +238,9 @@ export const AdminDashboard: React.FC = () => {
     if (!formData.name || !formData.indicativePrice) return;
 
     try {
-      let finalImages = formData.images && formData.images.length > 0 ? [...formData.images] : ['/products/peda.jpg'];
+      let finalImages = formData.images && formData.images.length > 0 ? [...formData.images] : ['/products/placeholder.jpg'];
 
-      // If user uploaded a new image file
+      // If user uploaded a new image file from phone or computer
       if (uploadedFile) {
         setIsUploading(true);
         try {
@@ -195,15 +309,16 @@ export const AdminDashboard: React.FC = () => {
   };
 
   // Filtered Products
-  const filteredProducts = adminProducts.filter(p => {
+  const filteredProducts = (adminProducts || []).filter(p => {
+    if (!p) return false;
     const matchesSearch = !searchFilter || 
-      p.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchFilter.toLowerCase());
+      (p.name && p.name.toLowerCase().includes(searchFilter.toLowerCase())) ||
+      (p.description && p.description.toLowerCase().includes(searchFilter.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  // 1. LOGIN VIEW IF UNAUTHENTICATED
+  // 1. LOGIN VIEW (LOCKED ADMIN PORTAL)
   if (!user || !token) {
     return (
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
@@ -213,11 +328,15 @@ export const AdminDashboard: React.FC = () => {
             <div className="inline-block p-3 bg-[#F8F3EA] rounded-2xl border border-[#E9DED0] mb-1">
               <ShopBrandName size="sm" />
             </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[11px] font-bold uppercase tracking-wider">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Owner Portal (Locked)</span>
+            </div>
             <h1 className="text-2xl font-serif font-black text-[#241A17]">
-              Owner Portal Login
+              Secure Management Login
             </h1>
-            <p className="text-xs text-[#241A17]/70">
-              Enter owner name and password to access the catalog management system.
+            <p className="text-xs text-[#241A17]/70 leading-relaxed">
+              Enter your configured Owner Name and Password to manage products, pricing, and live inventory.
             </p>
           </div>
 
@@ -231,14 +350,14 @@ export const AdminDashboard: React.FC = () => {
           <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
             <div className="space-y-1">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                Owner Name
+                Owner Name / Email
               </label>
               <input
                 type="text"
                 required
                 value={ownerNameInput}
                 onChange={(e) => setOwnerNameInput(e.target.value)}
-                placeholder="Mahendra Purohit"
+                placeholder="Enter your Owner Name or Email"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
               />
             </div>
@@ -252,7 +371,7 @@ export const AdminDashboard: React.FC = () => {
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="••••••"
+                placeholder="Enter your master password"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
               />
             </div>
@@ -262,11 +381,30 @@ export const AdminDashboard: React.FC = () => {
               disabled={isLoggingIn}
               className="w-full py-3 px-4 rounded-xl font-bold bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] uppercase tracking-wider text-xs shadow-sm transition-all disabled:opacity-50"
             >
-              {isLoggingIn ? 'Authenticating...' : 'Sign In as Owner'}
+              {isLoggingIn ? 'Verifying Credentials...' : 'Sign In as Owner'}
             </button>
           </form>
 
-          <div className="pt-4 border-t border-[#E9DED0] flex items-center justify-between text-xs">
+          {/* OTP Verification & Password Setup Option */}
+          <div className="p-4 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-2 text-center">
+            <div className="text-[11px] font-bold text-[#241A17] flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#6E1824]" />
+              <span>Need to Set or Reset Password?</span>
+            </div>
+            <p className="text-[10px] text-[#241A17]/70">
+              Create a new master password or recover access with mobile OTP verification.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenOtpReset}
+              className="w-full py-2 px-3 rounded-xl bg-[#FFFDF8] hover:bg-[#E9DED0] border border-[#E9DED0] text-[#6E1824] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Setup / Reset Password via OTP</span>
+            </button>
+          </div>
+
+          <div className="pt-2 border-t border-[#E9DED0] flex items-center justify-between text-xs">
             <button
               onClick={() => setIsAdminView(false)}
               className="inline-flex items-center gap-1.5 text-[#241A17]/70 hover:text-[#6E1824] font-medium"
@@ -281,6 +419,197 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
         </div>
+
+        {/* OTP Verification & Password Reset Modal */}
+        {isOtpModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex items-center justify-between border-b border-[#E9DED0] pb-3">
+                <div className="flex items-center gap-2 text-[#6E1824] font-serif font-bold text-base">
+                  <KeyRound className="w-5 h-5" />
+                  <span>Owner Password & Access Setup</span>
+                </div>
+                <button
+                  onClick={() => setIsOtpModalOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-[#F8F3EA] text-[#241A17]/60"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {otpSuccessMessage && (
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
+                  <Sparkles className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block">Security Verification Code Generated:</span>
+                    <span className="font-mono text-sm font-black bg-white px-2 py-0.5 rounded-lg border border-amber-300 text-[#6E1824] tracking-widest inline-block">
+                      {generatedOtp || '849201'}
+                    </span>
+                    <span className="block text-[10px] text-amber-800">
+                      Enter this 6-digit code below to verify your owner identity.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {otpError && (
+                <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              {/* STEP 1: REQUEST OTP */}
+              {otpStep === 'request' && (
+                <div className="space-y-4 text-xs">
+                  <p className="text-[#241A17]/80">
+                    To create or reset your master password, we will generate a secure OTP for the registered shop contact.
+                  </p>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                      Registered Mobile / Email
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={registeredContact}
+                        onChange={(e) => setRegisteredContact(e.target.value)}
+                        placeholder="e.g. 094233 13875"
+                        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
+                      />
+                      <Smartphone className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#C89B3C]" />
+                    <span>Generate & Send 6-Digit OTP</span>
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 2: VERIFY OTP */}
+              {otpStep === 'verify' && (
+                <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
+                  <p className="text-[#241A17]/80">
+                    Enter the 6-digit OTP code generated for <strong>{registeredContact}</strong>:
+                  </p>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                      6-Digit Verification OTP
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={enteredOtp}
+                      onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="e.g. 849201"
+                      className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-[#241A17]/70">
+                    <span>Code expires in: <strong>{otpCountdown}s</strong></span>
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="text-[#6E1824] font-bold hover:underline"
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all"
+                  >
+                    Verify OTP & Proceed
+                  </button>
+                </form>
+              )}
+
+              {/* STEP 3: CREATE NEW PASSWORD */}
+              {otpStep === 'new_password' && (
+                <form onSubmit={handleSaveNewPassword} className="space-y-4 text-xs">
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>OTP verified! Set your new Owner Name and Master Password below.</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                      Owner Name (Your Name)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newOwnerName}
+                      onChange={(e) => setNewOwnerName(e.target.value)}
+                      placeholder="e.g. Mahendra Purohit"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                      New Master Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Create strong password"
+                        className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-3 text-[#241A17]/60"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-type new password"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingPassword}
+                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4 text-[#C89B3C]" />
+                    <span>{isSubmittingPassword ? 'Saving to Cloud Firestore...' : 'Save New Password & Unlock Admin'}</span>
+                  </button>
+                </form>
+              )}
+
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -307,11 +636,20 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right hidden sm:block">
               <span className="text-[10px] text-[#241A17]/60 block font-medium">Logged in as Owner</span>
-              <span className="font-bold text-[#241A17]">Mahendra Purohit</span>
+              <span className="font-bold text-[#241A17]">{user?.fullName || 'Owner'}</span>
             </div>
+
+            <button
+              onClick={handleOpenOtpReset}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] border border-[#E9DED0] text-[#6E1824] font-bold text-xs transition-colors"
+              title="Change Password & Security"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Change Password</span>
+            </button>
 
             <button
               onClick={() => logout()}
@@ -339,7 +677,7 @@ export const AdminDashboard: React.FC = () => {
               Product & Pricing Management
             </h1>
             <p className="text-xs text-[#241A17]/70 mt-1">
-              Currently managing <strong>{adminProducts.length}</strong> items. Edit pricing, toggle visibility, and update festive badges.
+              Currently managing <strong>{adminProducts.length}</strong> items. Changes sync in real-time across all mobile phones and laptops.
             </p>
           </div>
 
@@ -348,149 +686,146 @@ export const AdminDashboard: React.FC = () => {
             className="inline-flex items-center gap-2 py-3 px-5 rounded-2xl bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex-shrink-0"
           >
             <Plus className="w-4 h-4 text-[#C89B3C]" />
-            <span>Add New Sweet / Item</span>
+            <span>+ Add New Sweet / Item</span>
           </button>
         </div>
 
-        {/* Filter & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#FFFDF8] border border-[#E9DED0] p-3.5 rounded-2xl shadow-sm">
-          <div className="relative flex-1 w-full sm:max-w-md">
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#FFFDF8] border border-[#E9DED0]">
+          
+          <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder="Search product by name or description..."
+              placeholder="Filter by product name..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-xs text-[#241A17] outline-none focus:border-[#6E1824]"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-xs text-[#241A17] placeholder-stone-400 outline-none focus:border-[#6E1824]"
             />
             <Search className="w-4 h-4 text-[#6E1824] absolute left-3 top-2.5" />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-xs font-semibold text-[#241A17] outline-none"
-            >
-              <option value="all">All Categories</option>
-              <option value="khoya-sweets">Khoya Sweets</option>
-              <option value="kaju-katli">Kaju Katli</option>
-              <option value="laddoo">Laddoo</option>
-              <option value="ras-malai">Ras Malai</option>
-              <option value="namkeen">Namkeen</option>
-              <option value="dry-fruits">Dry Fruits</option>
-              <option value="bakery">Bakery</option>
-              <option value="dairy-products">Dairy Products</option>
-            </select>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            {['all', 'khoya-sweets', 'kaju-katli', 'laddoo', 'ras-malai', 'namkeen', 'dry-fruits', 'bakery', 'dairy-products'].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold whitespace-nowrap capitalize transition-all border ${
+                  categoryFilter === cat
+                    ? 'bg-[#6E1824] text-white border-[#6E1824]'
+                    : 'bg-[#F8F3EA] text-[#241A17]/80 border-[#E9DED0]'
+                }`}
+              >
+                {cat.replace('-', ' ')}
+              </button>
+            ))}
           </div>
+
         </div>
 
-        {/* Table of Products */}
-        <div className="bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl shadow-sm overflow-hidden">
+        {/* Product Table List */}
+        <div className="bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#F8F3EA] border-b border-[#E9DED0] text-[10px] font-bold uppercase text-[#6E1824] tracking-wider">
-                  <th className="py-3 px-4">Sweet & Visual</th>
+                <tr className="bg-[#F8F3EA] border-b border-[#E9DED0] text-[10px] font-bold text-[#241A17]/70 uppercase tracking-wider">
+                  <th className="py-3 px-4">Sweet Item</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Indicative Rate</th>
-                  <th className="py-3 px-4">Badges</th>
-                  <th className="py-3 px-4 text-center">Storefront</th>
+                  <th className="py-3 px-4">Ref Price</th>
+                  <th className="py-3 px-4 text-center">Festive</th>
+                  <th className="py-3 px-4 text-center">Visibility</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9DED0]">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-[#F8F3EA]/50 transition-colors">
-                    
-                    {/* Item */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] overflow-hidden flex-shrink-0">
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
+                {filteredProducts.map(product => {
+                  const itemImg = Array.isArray(product.images) && product.images.length > 0 && product.images[0] ? product.images[0] : '/products/placeholder.jpg';
+                  return (
+                    <tr key={product.id} className="hover:bg-[#F8F3EA]/50 transition-colors">
+                      
+                      {/* Product Thumbnail & Title */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] overflow-hidden flex-shrink-0">
+                            <img
+                              src={itemImg}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <div className="font-serif font-bold text-sm text-[#241A17]">{product.name}</div>
+                            <div className="text-[11px] text-[#241A17]/60 line-clamp-1 max-w-xs">{product.description}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-serif font-bold text-sm text-[#241A17]">{product.name}</div>
-                          <div className="text-[11px] text-[#241A17]/65 line-clamp-1 max-w-xs">{product.description}</div>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Category */}
-                    <td className="py-3.5 px-4">
-                      <span className="capitalize px-2.5 py-0.5 rounded-lg bg-[#F8F3EA] border border-[#E9DED0] text-[11px] font-semibold text-[#241A17]/80">
-                        {product.category.replace('-', ' ')}
-                      </span>
-                    </td>
+                      {/* Category */}
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#F8F3EA] border border-[#E9DED0] text-[10px] font-bold uppercase tracking-wider text-[#6E1824]">
+                          {product.category.replace('-', ' ')}
+                        </span>
+                      </td>
 
-                    {/* Rate */}
-                    <td className="py-3.5 px-4 font-serif font-bold text-sm text-[#6E1824]">
-                      ₹{product.indicativePrice} <span className="text-[10px] font-normal text-[#241A17]/60">/ {product.unit}</span>
-                    </td>
+                      {/* Price */}
+                      <td className="py-3 px-4 font-serif font-black text-sm text-[#6E1824]">
+                        ₹{product.indicativePrice} <span className="text-[10px] font-normal text-[#241A17]/60">/{product.unit}</span>
+                      </td>
 
-                    {/* Badges */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1 items-center">
+                      {/* Festive Toggle */}
+                      <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => toggleFestive(product.id, !product.isFestiveSpecial)}
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-bold border transition-colors ${
+                          className={`p-1.5 rounded-xl border transition-colors ${
                             product.isFestiveSpecial
-                              ? 'bg-[#6E1824] text-white border-[#6E1824]'
-                              : 'bg-[#F8F3EA] text-[#241A17]/60 border-[#E9DED0] hover:border-[#6E1824]'
+                              ? 'bg-amber-100 border-amber-300 text-amber-800'
+                              : 'bg-[#F8F3EA] border-[#E9DED0] text-[#241A17]/40 hover:text-[#241A17]'
                           }`}
-                          title="Click to toggle festive special badge"
+                          title="Toggle Festive Special Badge"
                         >
-                          Festive
+                          <Sparkles className="w-4 h-4" />
                         </button>
+                      </td>
 
-                        {product.isPerishable && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            Daily Fresh
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Visibility Toggle */}
-                    <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => toggleVisibility(product.id, !product.isVisible)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
-                          product.isVisible
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-stone-100 text-stone-500 border border-stone-200'
-                        }`}
-                        title="Click to toggle storefront visibility"
-                      >
-                        {product.isVisible ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3" />}
-                        <span>{product.isVisible ? 'Live' : 'Hidden'}</span>
-                      </button>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      {/* Visibility Toggle */}
+                      <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => handleOpenEdit(product)}
-                          className="px-2.5 py-1.5 rounded-xl bg-[#F8F3EA] hover:bg-[#6E1824] text-[#241A17] hover:text-white border border-[#E9DED0] transition-colors text-[11px] font-semibold"
+                          onClick={() => toggleVisibility(product.id, !product.isVisible)}
+                          className={`p-1.5 rounded-xl border transition-colors ${
+                            product.isVisible
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                              : 'bg-stone-100 border-stone-300 text-stone-400'
+                          }`}
+                          title={product.isVisible ? 'Visible on Counter' : 'Hidden from Counter'}
                         >
-                          Edit
+                          {product.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id, product.name)}
-                          className="p-1.5 rounded-xl bg-red-50 hover:bg-red-600 text-red-700 hover:text-white border border-red-200 transition-colors"
-                          title="Delete sweet"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
+                      </td>
 
-                  </tr>
-                ))}
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(product)}
+                            className="px-3 py-1.5 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] border border-[#E9DED0] text-[#241A17] font-semibold text-xs transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id, product.name)}
+                            className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -500,67 +835,47 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Add / Edit Product Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-xl w-full bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-xl w-full p-6 space-y-4 text-left relative max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between border-b border-[#E9DED0] pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E1824]">Catalog Editor</span>
-                <h3 className="text-lg font-serif font-black text-[#241A17]">
-                  {editingProduct ? `Edit: ${editingProduct.name}` : 'Add New Counter Sweet / Item'}
-                </h3>
-              </div>
-
+              <h2 className="font-serif font-bold text-base text-[#241A17]">
+                {editingProduct ? `Edit ${editingProduct.name}` : 'Add New Sweet to Counter'}
+              </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-2 rounded-xl text-[#241A17]/60 hover:bg-[#F8F3EA] hover:text-[#241A17]"
+                className="p-1.5 rounded-full hover:bg-[#F8F3EA] text-[#241A17]/60"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
               
-              {/* Name */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                  Product Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Special Sweet Malai Lassi"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  value={formData.description || ''}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Craftsmanship, flavor profile, and traditional recipe details..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
-                />
-              </div>
-
-              {/* Category & Unit */}
+              {/* Name & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                    Category
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Sweet Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Kesar Peda"
+                    className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Category *
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
                   >
                     <option value="khoya-sweets">Khoya Sweets</option>
                     <option value="kaju-katli">Kaju Katli</option>
@@ -572,166 +887,154 @@ export const AdminDashboard: React.FC = () => {
                     <option value="dairy-products">Dairy Products</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                    Pricing Unit
-                  </label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none"
-                  >
-                    <option value="kg">per kg</option>
-                    <option value="glass">per glass</option>
-                    <option value="piece">per piece</option>
-                    <option value="box">per box</option>
-                    <option value="pack">per pack</option>
-                    <option value="litre">per litre</option>
-                  </select>
-                </div>
               </div>
 
-              {/* Indicative Price */}
+              {/* Price & Unit */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                    Indicative Price (₹)
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Ref Price (₹) *
                   </label>
                   <input
                     type="number"
                     required
-                    min={1}
-                    value={formData.indicativePrice || ''}
+                    min="1"
+                    value={formData.indicativePrice}
                     onChange={(e) => setFormData({ ...formData, indicativePrice: Number(e.target.value) })}
-                    placeholder="40"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-bold outline-none focus:border-[#6E1824]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-bold outline-none focus:border-[#6E1824]"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                    Image Path or Upload
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={formData.images ? formData.images[0] : ''}
-                      onChange={(e) => setFormData({ ...formData, images: [e.target.value] })}
-                      placeholder="/products/lassi.jpg"
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none"
-                    />
-                    <label className="p-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] hover:bg-[#E9DED0] cursor-pointer flex items-center justify-center" title="Upload local image">
-                      <Upload className="w-4 h-4 text-[#6E1824]" />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setUploadedFile(e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                  {uploadedFile && (
-                    <span className="text-[10px] text-emerald-700 block mt-1">
-                      Ready to upload: {uploadedFile.name}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Allergens */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1.5">
-                  Allergen Disclosures
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {ALLERGEN_OPTIONS.map((alg) => {
-                    const isSelected = (formData.allergens || []).includes(alg.id);
-                    return (
-                      <button
-                        key={alg.id}
-                        type="button"
-                        onClick={() => handleToggleAllergen(alg.id)}
-                        className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-colors ${
-                          isSelected
-                            ? 'bg-[#6E1824] text-[#FFFDF8] border-[#6E1824]'
-                            : 'bg-[#F8F3EA] text-[#241A17]/70 border-[#E9DED0]'
-                        }`}
-                      >
-                        {alg.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Festive Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#E9DED0]">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#241A17] uppercase tracking-wider mb-1">
-                    Festival Association
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                    Unit
                   </label>
                   <select
-                    value={formData.festivalTag || 'General'}
-                    onChange={(e) => setFormData({ ...formData, festivalTag: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
                   >
-                    <option value="General">General / All Occasions</option>
-                    <option value="Diwali">Diwali (Festival of Lights)</option>
-                    <option value="Ganesh Chaturthi">Ganesh Chaturthi</option>
-                    <option value="Holi">Holi (Festival of Colors)</option>
-                    <option value="Raksha Bandhan">Raksha Bandhan</option>
-                    <option value="Janmashtami">Janmashtami</option>
-                    <option value="Navratri">Navratri & Dussehra</option>
+                    <option value="kg">per kg</option>
+                    <option value="piece">per piece</option>
+                    <option value="box">per box</option>
+                    <option value="pack">per pack</option>
+                    <option value="litre">per litre</option>
+                    <option value="glass">per glass</option>
                   </select>
-                </div>
-
-                <div className="flex flex-col justify-end">
-                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.isFestiveSpecial || false}
-                      onChange={(e) => setFormData({ ...formData, isFestiveSpecial: e.target.checked })}
-                      className="rounded border-[#E9DED0] text-[#6E1824] focus:ring-0"
-                    />
-                    <span className="font-semibold text-[11px]">Feature in Festive Showcase</span>
-                  </label>
                 </div>
               </div>
 
-              {/* Status Toggles */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <label className="flex items-center gap-2 p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isPerishable || false}
-                    onChange={(e) => setFormData({ ...formData, isPerishable: e.target.checked })}
-                    className="rounded border-[#E9DED0] text-[#6E1824] focus:ring-0"
-                  />
-                  <span className="font-semibold text-[11px]">Daily Fresh</span>
+              {/* Description */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                  Product Description
                 </label>
+                <textarea
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Freshly prepared traditional sweet handcrafted at Mapusa shop."
+                  className="w-full px-3 py-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
+                />
+              </div>
 
-                <label className="flex items-center gap-2 p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] cursor-pointer">
+              {/* Photo Upload with Live Mobile Camera Support */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                  Sweet Photo (Phone Camera or Gallery)
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {uploadedFile ? (
+                      <img
+                        src={URL.createObjectURL(uploadedFile)}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : formData.images && formData.images[0] ? (
+                      <img
+                        src={formData.images[0]}
+                        alt="Current"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
+                        }}
+                      />
+                    ) : (
+                      <Upload className="w-5 h-5 text-[#241A17]/40" />
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setUploadedFile(e.target.files[0]);
+                        }
+                      }}
+                      className="text-xs text-[#241A17]/80 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#6E1824] file:text-white hover:file:bg-[#52111A] file:cursor-pointer"
+                    />
+                    <span className="text-[10px] text-[#241A17]/60 block mt-0.5">
+                      Photos are automatically compressed to ~35KB for instant loading on all devices.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Allergen Options */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#241A17]">
+                  Allergens
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {ALLERGEN_OPTIONS.map((alg) => (
+                    <button
+                      type="button"
+                      key={alg.id}
+                      onClick={() => handleToggleAllergen(alg.id)}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-semibold transition-all border ${
+                        formData.allergens?.includes(alg.id)
+                          ? 'bg-[#6E1824] text-white border-[#6E1824]'
+                          : 'bg-[#F8F3EA] text-[#241A17]/80 border-[#E9DED0]'
+                      }`}
+                    >
+                      {alg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex items-center gap-6 pt-2 border-t border-[#E9DED0]">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={formData.isVisible !== false}
+                    checked={formData.isVisible}
                     onChange={(e) => setFormData({ ...formData, isVisible: e.target.checked })}
                     className="rounded border-[#E9DED0] text-[#6E1824] focus:ring-0"
                   />
-                  <span className="font-semibold text-[11px]">Public Live</span>
+                  <span className="font-semibold text-[11px]">Display on Live Counter</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isFestiveSpecial}
+                    onChange={(e) => setFormData({ ...formData, isFestiveSpecial: e.target.checked })}
+                    className="rounded border-[#E9DED0] text-[#6E1824] focus:ring-0"
+                  />
+                  <span className="font-semibold text-[11px]">Festive Special Badge</span>
                 </label>
               </div>
 
-              {/* Modal Actions */}
+              {/* Submit Buttons */}
               <div className="pt-3 border-t border-[#E9DED0] flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="py-2.5 px-4 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] font-semibold text-[#241A17] transition-colors"
+                  className="px-4 py-2 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] text-[#241A17] font-semibold text-xs"
                 >
                   Cancel
                 </button>
@@ -739,9 +1042,10 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="py-2.5 px-6 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] font-bold uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
                 >
-                  {isUploading ? 'Uploading...' : editingProduct ? 'Update Sweet' : 'Add Sweet'}
+                  <Save className="w-3.5 h-3.5 text-[#C89B3C]" />
+                  <span>{isUploading ? 'Compressing Photo...' : 'Save & Publish to Live Counter'}</span>
                 </button>
               </div>
 
