@@ -18,7 +18,7 @@ import {
   AlertCircle,
   KeyRound,
   ShieldCheck,
-  Smartphone,
+  Mail,
   CheckCircle2,
   Send,
   Clock,
@@ -27,7 +27,7 @@ import {
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
 import { AUTHORIZED_OWNERS, AuthorizedOwner } from '../../services/firebaseRest';
-import { sendSmsOtpToOwner, verifySmsOtp } from '../../services/smsService';
+import { sendEmailOtpToOwner, verifyEmailOtp } from '../../services/smsService';
 
 const ALLERGEN_OPTIONS: { id: Allergen; label: string }[] = [
   { id: 'milk', label: 'Milk' },
@@ -59,10 +59,10 @@ export const AdminDashboard: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Forgot Password / Mobile SMS OTP State
+  // Forgot Password / Email OTP State
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
-  const [otpStep, setOtpStep] = useState<'phone' | 'verify' | 'new_password'>('phone');
-  const [enteredPhone, setEnteredPhone] = useState('');
+  const [otpStep, setOtpStep] = useState<'email' | 'verify' | 'new_password'>('email');
+  const [enteredEmail, setEnteredEmail] = useState('');
   const [identifiedOwner, setIdentifiedOwner] = useState<AuthorizedOwner | null>(null);
   const [enteredOtp, setEnteredOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -132,8 +132,8 @@ export const AdminDashboard: React.FC = () => {
 
   // Open Forgot Password Modal
   const handleOpenForgotPassword = () => {
-    setOtpStep('phone');
-    setEnteredPhone('');
+    setOtpStep('email');
+    setEnteredEmail('');
     setIdentifiedOwner(null);
     setEnteredOtp('');
     setOtpError('');
@@ -143,36 +143,36 @@ export const AdminDashboard: React.FC = () => {
     setIsOtpModalOpen(true);
   };
 
-  // Dispatch Mobile SMS OTP via Server
-  const handleSendMobileOtp = async (e: React.FormEvent) => {
+  // Dispatch Email OTP via Server
+  const handleSendEmailOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
     setIsSendingOtp(true);
 
     try {
-      const res = await sendSmsOtpToOwner(enteredPhone);
-      const owner = AUTHORIZED_OWNERS.find(o => o.phone === res.phone) || null;
+      const res = await sendEmailOtpToOwner(enteredEmail);
+      const owner = AUTHORIZED_OWNERS.find(o => o.email.toLowerCase() === res.email.toLowerCase()) || null;
       setIdentifiedOwner(owner);
       setOtpStep('verify');
       setOtpSecondsLeft(300); // 5 minutes fresh timer
     } catch (err: any) {
-      setOtpError(err.message || 'Failed to dispatch SMS OTP. Please check your mobile number.');
+      setOtpError(err.message || 'Failed to dispatch Email OTP. Please check your registered email.');
     } finally {
       setIsSendingOtp(false);
     }
   };
 
-  // Resend SMS Handler
-  const handleResendSms = async () => {
-    if (!enteredPhone) return;
+  // Resend Email Handler
+  const handleResendEmail = async () => {
+    if (!enteredEmail) return;
     setOtpError('');
     setIsSendingOtp(true);
     try {
-      await sendSmsOtpToOwner(enteredPhone);
+      await sendEmailOtpToOwner(enteredEmail);
       setOtpSecondsLeft(300);
-      alert(`✅ Fresh 6-digit OTP dispatched via SMS to ${identifiedOwner?.name || 'your mobile phone'}. Valid for 5 minutes.`);
+      alert(`✅ Fresh 6-digit OTP sent to ${identifiedOwner?.email || 'your email'}. Valid for 5 minutes.`);
     } catch (err: any) {
-      setOtpError(err.message || 'Could not resend SMS. Please try again.');
+      setOtpError(err.message || 'Could not resend email. Please try again.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -185,11 +185,11 @@ export const AdminDashboard: React.FC = () => {
     setIsVerifyingOtp(true);
 
     try {
-      const result = await verifySmsOtp(enteredPhone, enteredOtp);
+      const result = await verifyEmailOtp(enteredEmail, enteredOtp);
       setIdentifiedOwner(result.owner);
       setOtpStep('new_password');
     } catch (err: any) {
-      setOtpError(err.message || 'Invalid or expired OTP code. Please check your SMS inbox.');
+      setOtpError(err.message || 'Invalid or expired OTP code. Please check your email inbox / spam folder.');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -214,12 +214,13 @@ export const AdminDashboard: React.FC = () => {
     try {
       const activeName = identifiedOwner ? identifiedOwner.name : 'Mahendra Purohit';
       const activePhone = identifiedOwner ? identifiedOwner.phone : '9423313875';
+      const activeEmail = identifiedOwner ? identifiedOwner.email : 'laxmisweetmart@gmail.com';
 
       await updateAdminPassword({
         ownerName: activeName,
         password: newPassword.trim(),
         phone: activePhone,
-        email: identifiedOwner?.email || 'laxmisweetmart@gmail.com'
+        email: activeEmail
       });
 
       setIsOtpModalOpen(false);
@@ -440,7 +441,7 @@ export const AdminDashboard: React.FC = () => {
 
         </div>
 
-        {/* FORGOT PASSWORD & MOBILE SMS OTP MODAL */}
+        {/* FORGOT PASSWORD & EMAIL OTP MODAL */}
         {isOtpModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
@@ -466,35 +467,41 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: ENTER OWNER MOBILE NUMBER */}
-              {otpStep === 'phone' && (
-                <form onSubmit={handleSendMobileOtp} className="space-y-4 text-xs">
+              {/* STEP 1: ENTER OWNER EMAIL */}
+              {otpStep === 'email' && (
+                <form onSubmit={handleSendEmailOtp} className="space-y-4 text-xs">
                   <p className="text-[#241A17]/80 leading-relaxed">
-                    Enter your registered Owner Mobile Number. The 6-digit OTP will be dispatched to your phone SMS:
+                    Enter your registered Owner Email address. The 6-digit OTP will be sent directly to your email inbox:
                   </p>
 
                   <div className="p-3 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-1.5 text-[11px]">
                     <span className="font-bold text-[#6E1824] block">Authorized Owners:</span>
-                    <div className="text-[#241A17]/80 space-y-0.5">
-                      <div>• Dilip Purohit</div>
-                      <div>• Mahendra Purohit</div>
+                    <div className="text-[#241A17]/80 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span>• Dilip Purohit</span>
+                        <strong className="font-mono text-[10px] text-[#6E1824]">imdilippurohit@gmail.com</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>• Mahendra Purohit</span>
+                        <strong className="font-mono text-[10px] text-[#6E1824]">laxmisweetmart@gmail.com</strong>
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Your Mobile Number
+                      Your Registered Email
                     </label>
                     <div className="relative">
                       <input
-                        type="tel"
+                        type="email"
                         required
-                        value={enteredPhone}
-                        onChange={(e) => setEnteredPhone(e.target.value)}
-                        placeholder="Enter your 10-digit registered mobile number"
+                        value={enteredEmail}
+                        onChange={(e) => setEnteredEmail(e.target.value)}
+                        placeholder="imdilippurohit@gmail.com or laxmisweetmart@gmail.com"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
                       />
-                      <Smartphone className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
+                      <Mail className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
                     </div>
                   </div>
 
@@ -504,27 +511,25 @@ export const AdminDashboard: React.FC = () => {
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <Send className="w-4 h-4 text-[#C89B3C]" />
-                    <span>{isSendingOtp ? 'Dispatching SMS...' : 'Send OTP via SMS'}</span>
+                    <span>{isSendingOtp ? 'Sending Email OTP...' : 'Send OTP via Email'}</span>
                   </button>
                 </form>
               )}
 
-              {/* STEP 2: ENTER OTP RECEIVED VIA SMS */}
+              {/* STEP 2: ENTER OTP RECEIVED VIA EMAIL */}
               {otpStep === 'verify' && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
                   <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <span className="font-bold block text-emerald-900">
-                        OTP Dispatched via SMS to {identifiedOwner?.name}
+                        OTP Dispatched to {identifiedOwner?.name} ({identifiedOwner?.email})
                       </span>
                       <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was dispatched to your phone SMS. Valid for <strong>5 minutes</strong>.
+                        A 6-digit security code was sent to your email. Check your Inbox / Spam folder. Valid for <strong>5 minutes</strong>.
                       </span>
                     </div>
                   </div>
-
-                  <div id="recaptcha-container"></div>
 
                   <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0]">
                     <span className="text-[#241A17]/80 flex items-center gap-1.5 font-medium">
@@ -534,18 +539,18 @@ export const AdminDashboard: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={handleResendSms}
+                      onClick={handleResendEmail}
                       disabled={isSendingOtp}
                       className="inline-flex items-center gap-1 text-[#6E1824] font-bold hover:underline disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3 h-3 ${isSendingOtp ? 'animate-spin' : ''}`} />
-                      <span>Resend SMS</span>
+                      <span>Resend Email</span>
                     </button>
                   </div>
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Enter 6-Digit OTP from SMS
+                      Enter 6-Digit OTP from Email
                     </label>
                     <input
                       type="text"
@@ -557,7 +562,7 @@ export const AdminDashboard: React.FC = () => {
                       className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
                     />
                     <span className="block text-[10px] text-[#241A17]/60 text-center mt-1">
-                      Enter the 6-digit verification code sent to your phone SMS.
+                      Enter the 6-digit verification code sent to your email inbox.
                     </span>
                   </div>
 
@@ -566,7 +571,7 @@ export const AdminDashboard: React.FC = () => {
                     disabled={isVerifyingOtp || otpSecondsLeft === 0}
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
                   >
-                    {isVerifyingOtp ? 'Verifying OTP...' : 'Verify SMS OTP'}
+                    {isVerifyingOtp ? 'Verifying OTP...' : 'Verify Email OTP'}
                   </button>
                 </form>
               )}
@@ -576,7 +581,7 @@ export const AdminDashboard: React.FC = () => {
                 <form onSubmit={handleSaveNewPassword} className="space-y-4 text-xs">
                   <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Identity verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
+                    <span>Email verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
                   </div>
 
                   <div className="space-y-1">

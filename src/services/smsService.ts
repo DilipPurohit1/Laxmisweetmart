@@ -6,20 +6,24 @@ const FIRESTORE_OTP_URL = `https://firestore.googleapis.com/v1/projects/${FIREST
 export interface OtpDispatchResult {
   success: boolean;
   ownerName: string;
+  email: string;
   phone: string;
   expiresAt: number;
   message: string;
 }
 
 /**
- * Dispatches 6-digit SMS OTP via fast serverless gateway and syncs with Cloud Firestore
+ * Dispatches 6-digit Email OTP via fast serverless endpoint and syncs with Cloud Firestore
  */
-export async function sendSmsOtpToOwner(rawPhone: string): Promise<OtpDispatchResult> {
-  const clean = rawPhone.replace(/\D/g, '');
+export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatchResult> {
+  const cleanEmail = rawEmail.trim().toLowerCase();
 
-  const owner = AUTHORIZED_OWNERS.find((o) => clean.endsWith(o.phone));
+  const owner = AUTHORIZED_OWNERS.find(
+    (o) => o.email.toLowerCase() === cleanEmail || cleanEmail.includes(o.email.toLowerCase())
+  );
+
   if (!owner) {
-    throw new Error('Unauthorized mobile number. Password reset is restricted to registered owners only.');
+    throw new Error('Unauthorized email address. Password reset is restricted to registered owner emails only.');
   }
 
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
@@ -30,7 +34,7 @@ export async function sendSmsOtpToOwner(rawPhone: string): Promise<OtpDispatchRe
     const apiRes = await fetch('/api/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: owner.phone })
+      body: JSON.stringify({ email: owner.email })
     });
 
     if (apiRes.ok) {
@@ -38,9 +42,10 @@ export async function sendSmsOtpToOwner(rawPhone: string): Promise<OtpDispatchRe
       return {
         success: true,
         ownerName: owner.name,
+        email: owner.email,
         phone: owner.phone,
         expiresAt: data.expiresAt || expiresAt,
-        message: `6-digit OTP dispatched via SMS to ${owner.name}. Valid for 5 minutes.`
+        message: `6-digit OTP sent to ${owner.email}. Valid for 5 minutes.`
       };
     }
   } catch (e) {
@@ -51,7 +56,7 @@ export async function sendSmsOtpToOwner(rawPhone: string): Promise<OtpDispatchRe
   try {
     const payload = {
       fields: {
-        phone: { stringValue: owner.phone },
+        email: { stringValue: owner.email },
         ownerName: { stringValue: owner.name },
         otpCode: { stringValue: generatedCode },
         expiresAt: { integerValue: expiresAt.toString() },
@@ -75,25 +80,29 @@ export async function sendSmsOtpToOwner(rawPhone: string): Promise<OtpDispatchRe
   return {
     success: true,
     ownerName: owner.name,
+    email: owner.email,
     phone: owner.phone,
     expiresAt,
-    message: `6-digit OTP dispatched via SMS to ${owner.name}. Valid for 5 minutes.`
+    message: `6-digit OTP sent to ${owner.email}. Valid for 5 minutes.`
   };
 }
 
 /**
- * Strictly verifies the 6-digit SMS OTP
+ * Strictly verifies the 6-digit Email OTP
  */
-export async function verifySmsOtp(rawPhone: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
-  const clean = rawPhone.replace(/\D/g, '');
-  const owner = AUTHORIZED_OWNERS.find((o) => clean.endsWith(o.phone));
+export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
+  const cleanEmail = rawEmail.trim().toLowerCase();
+  const owner = AUTHORIZED_OWNERS.find(
+    (o) => o.email.toLowerCase() === cleanEmail || cleanEmail.includes(o.email.toLowerCase())
+  );
+
   if (!owner) {
-    throw new Error('Unauthorized mobile number.');
+    throw new Error('Unauthorized email address.');
   }
 
   const cleanCode = enteredCode.trim().replace(/\D/g, '');
   if (cleanCode.length !== 6) {
-    throw new Error('Please enter the 6-digit OTP code received on your SMS.');
+    throw new Error('Please enter the 6-digit OTP code received in your email.');
   }
 
   // 1. Verify via Serverless API endpoint
@@ -101,7 +110,7 @@ export async function verifySmsOtp(rawPhone: string, enteredCode: string): Promi
     const apiRes = await fetch('/api/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: owner.phone, otp: cleanCode })
+      body: JSON.stringify({ email: owner.email, otp: cleanCode })
     });
 
     if (apiRes.ok) {
@@ -133,13 +142,13 @@ export async function verifySmsOtp(rawPhone: string, enteredCode: string): Promi
   }
 
   const f = doc.fields;
-  const storedPhone = f.phone?.stringValue || '';
+  const storedEmail = (f.email?.stringValue || '').toLowerCase();
   const storedCode = f.otpCode?.stringValue || '';
   const expiresAt = Number(f.expiresAt?.integerValue || 0);
   const isUsed = f.isUsed?.booleanValue ?? false;
 
-  if (!storedPhone.endsWith(owner.phone)) {
-    throw new Error('OTP does not match this mobile number.');
+  if (storedEmail !== owner.email.toLowerCase()) {
+    throw new Error('OTP does not match this email address.');
   }
 
   if (Date.now() > expiresAt) {
@@ -151,7 +160,7 @@ export async function verifySmsOtp(rawPhone: string, enteredCode: string): Promi
   }
 
   if (storedCode !== cleanCode) {
-    throw new Error('Incorrect 6-digit OTP code. Please check your SMS inbox.');
+    throw new Error('Incorrect 6-digit OTP code. Please check your email inbox.');
   }
 
   // Mark as used

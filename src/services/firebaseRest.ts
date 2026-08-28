@@ -12,13 +12,13 @@ export interface AuthorizedOwner {
   email: string;
 }
 
-// Strictly authorized owners
+// Strictly authorized owners with verified emails
 export const AUTHORIZED_OWNERS: AuthorizedOwner[] = [
   {
     name: 'Dilip Purohit',
     phone: '9405152144',
     displayPhone: '+91 94051 52144',
-    email: 'dilip.purohit@shrilaxmisweetmart.com'
+    email: 'imdilippurohit@gmail.com'
   },
   {
     name: 'Mahendra Purohit',

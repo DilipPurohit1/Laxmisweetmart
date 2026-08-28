@@ -1,8 +1,8 @@
 import https from 'https';
 
 const AUTHORIZED_OWNERS = [
-  { name: 'Dilip Purohit', phone: '9405152144' },
-  { name: 'Mahendra Purohit', phone: '9423313875' }
+  { name: 'Dilip Purohit', email: 'imdilippurohit@gmail.com', phone: '9405152144' },
+  { name: 'Mahendra Purohit', email: 'laxmisweetmart@gmail.com', phone: '9423313875' }
 ];
 
 const FIRESTORE_PROJECT_ID = 'laxmi-sweet-mart';
@@ -63,21 +63,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone, otp } = req.body || {};
-    if (!phone || !otp) {
-      return res.status(400).json({ error: 'Both phone and 6-digit OTP are required.' });
+    const { email, otp } = req.body || {};
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Both email and 6-digit OTP are required.' });
     }
 
-    const cleanPhone = String(phone).replace(/\D/g, '');
+    const cleanEmail = String(email).trim().toLowerCase();
     const cleanOtp = String(otp).trim().replace(/\D/g, '');
 
-    const owner = AUTHORIZED_OWNERS.find((o) => cleanPhone.endsWith(o.phone));
+    const owner = AUTHORIZED_OWNERS.find(
+      (o) => o.email.toLowerCase() === cleanEmail || cleanEmail.includes(o.email.toLowerCase())
+    );
+
     if (!owner) {
-      return res.status(403).json({ error: 'Unauthorized phone number.' });
+      return res.status(403).json({ error: 'Unauthorized email address.' });
     }
 
     if (cleanOtp.length !== 6) {
-      return res.status(400).json({ error: 'Please enter the 6-digit OTP code received on your phone.' });
+      return res.status(400).json({ error: 'Please enter the 6-digit OTP code received in your email.' });
     }
 
     // Read active OTP from Cloud Firestore
@@ -87,13 +90,13 @@ export default async function handler(req, res) {
     }
 
     const f = data.fields;
-    const storedPhone = f.phone?.stringValue || '';
+    const storedEmail = (f.email?.stringValue || '').toLowerCase();
     const storedCode = f.otpCode?.stringValue || '';
     const expiresAt = Number(f.expiresAt?.integerValue || 0);
     const isUsed = f.isUsed?.booleanValue ?? false;
 
-    if (!storedPhone.endsWith(owner.phone)) {
-      return res.status(400).json({ error: 'OTP does not match this mobile number.' });
+    if (storedEmail !== owner.email.toLowerCase()) {
+      return res.status(400).json({ error: 'OTP does not match this email address.' });
     }
 
     if (Date.now() > expiresAt) {
@@ -110,7 +113,7 @@ export default async function handler(req, res) {
 
     if (storedCode !== cleanOtp) {
       return res.status(400).json({
-        error: 'Incorrect OTP code. Please enter the 6-digit code received on your SMS.'
+        error: 'Incorrect OTP code. Please check your email inbox and re-enter.'
       });
     }
 
@@ -127,6 +130,7 @@ export default async function handler(req, res) {
       success: true,
       owner: {
         name: owner.name,
+        email: owner.email,
         phone: owner.phone
       }
     });

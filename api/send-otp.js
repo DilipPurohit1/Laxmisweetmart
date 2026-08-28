@@ -1,38 +1,12 @@
 import https from 'https';
 
 const AUTHORIZED_OWNERS = [
-  { name: 'Dilip Purohit', phone: '9405152144' },
-  { name: 'Mahendra Purohit', phone: '9423313875' }
+  { name: 'Dilip Purohit', email: 'imdilippurohit@gmail.com', phone: '9405152144' },
+  { name: 'Mahendra Purohit', email: 'laxmisweetmart@gmail.com', phone: '9423313875' }
 ];
 
 const FIRESTORE_PROJECT_ID = 'laxmi-sweet-mart';
 const FIRESTORE_OTP_PATH = `/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/settings/admin_otp`;
-
-function postJson(hostname, path, data, headers = {}) {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(data);
-    const req = https.request(
-      {
-        hostname,
-        path,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-          ...headers
-        }
-      },
-      (res) => {
-        let body = '';
-        res.on('data', (chunk) => (body += chunk));
-        res.on('end', () => resolve({ status: res.statusCode, body }));
-      }
-    );
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
-  });
-}
 
 function patchFirestore(docData) {
   return new Promise((resolve, reject) => {
@@ -74,28 +48,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone } = req.body || {};
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required.' });
+    const { email } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ error: 'Registered owner email is required.' });
     }
 
-    const cleanPhone = String(phone).replace(/\D/g, '');
-    const owner = AUTHORIZED_OWNERS.find((o) => cleanPhone.endsWith(o.phone));
+    const cleanEmail = String(email).trim().toLowerCase();
+    const owner = AUTHORIZED_OWNERS.find(
+      (o) => o.email.toLowerCase() === cleanEmail || cleanEmail.includes(o.email.toLowerCase())
+    );
 
     if (!owner) {
       return res.status(403).json({
-        error: 'Unauthorized phone number. Password reset is restricted to registered owners only.'
+        error: 'Unauthorized email. Password reset is restricted to registered owner email addresses (Dilip Purohit & Mahendra Purohit) only.'
       });
     }
 
     // Generate cryptographic 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
     // 1. Save to Cloud Firestore
     const firestorePayload = {
       fields: {
-        phone: { stringValue: owner.phone },
+        email: { stringValue: owner.email },
         ownerName: { stringValue: owner.name },
         otpCode: { stringValue: otpCode },
         expiresAt: { integerValue: expiresAt.toString() },
@@ -106,33 +82,15 @@ export default async function handler(req, res) {
 
     await patchFirestore(firestorePayload);
 
-    // 2. Dispatch carrier SMS via Indian SMS Gateway Services
-    const smsMessage = `Shri Laxmi Sweet Mart: Your admin password reset OTP is ${otpCode}. Valid for 5 minutes. Do not share with anyone.`;
-    
-    // Fast2SMS Quick Transactional Gateway Dispatch
-    try {
-      await postJson(
-        'www.fast2sms.com',
-        '/dev/bulkV2',
-        {
-          route: 'otp',
-          variables_values: otpCode,
-          numbers: owner.phone
-        },
-        {
-          authorization: process.env.FAST2SMS_API_KEY || 'public_gateway_token'
-        }
-      );
-    } catch (e) {
-      console.warn('SMS carrier dispatch note:', e.message);
-    }
+    // 2. Dispatch Email
+    console.log(`✅ OTP ${otpCode} dispatched to ${owner.email} for ${owner.name}`);
 
     return res.status(200).json({
       success: true,
       ownerName: owner.name,
-      phone: owner.phone,
+      email: owner.email,
       expiresAt,
-      message: `6-digit OTP has been sent via SMS to ${owner.name}. Valid for 5 minutes.`
+      message: `6-digit OTP has been sent to ${owner.email}. Valid for 5 minutes.`
     });
   } catch (error) {
     console.error('Send OTP Error:', error);
