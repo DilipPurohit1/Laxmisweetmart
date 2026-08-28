@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Product, Category, Allergen } from '../../types';
 import { 
@@ -20,11 +20,14 @@ import {
   ShieldCheck,
   Smartphone,
   CheckCircle2,
-  Send
+  Send,
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
 import { AUTHORIZED_OWNERS, AuthorizedOwner } from '../../services/firebaseRest';
+import { sendSmsOtpToOwner, verifySmsOtp } from '../../services/smsService';
 
 const ALLERGEN_OPTIONS: { id: Allergen; label: string }[] = [
   { id: 'milk', label: 'Milk' },
@@ -56,18 +59,19 @@ export const AdminDashboard: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Forgot Password / Mobile OTP State
+  // Forgot Password / Mobile SMS OTP State
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [otpStep, setOtpStep] = useState<'phone' | 'verify' | 'new_password'>('phone');
   const [enteredPhone, setEnteredPhone] = useState('');
   const [identifiedOwner, setIdentifiedOwner] = useState<AuthorizedOwner | null>(null);
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(60);
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState(300); // 5 minutes validity
   const [otpError, setOtpError] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
   // Filter & Search State
@@ -94,6 +98,24 @@ export const AdminDashboard: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // 5-minute countdown clock
+  useEffect(() => {
+    let timer: any;
+    if (isOtpModalOpen && otpStep === 'verify' && otpSecondsLeft > 0) {
+      timer = setInterval(() => {
+        setOtpSecondsLeft(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isOtpModalOpen, otpStep, otpSecondsLeft]);
+
+  // Format seconds as MM:SS (e.g. 04:59)
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remainder = secs % 60;
+    return `${mins.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
+  };
+
   // Login Handler
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,53 +135,63 @@ export const AdminDashboard: React.FC = () => {
     setOtpStep('phone');
     setEnteredPhone('');
     setIdentifiedOwner(null);
-    setGeneratedOtp('');
     setEnteredOtp('');
     setOtpError('');
     setNewPassword('');
     setConfirmPassword('');
+    setOtpSecondsLeft(300);
     setIsOtpModalOpen(true);
   };
 
-  // Validate Owner Phone & Dispatch Mobile SMS OTP
-  const handleSendMobileOtp = (e: React.FormEvent) => {
+  // Dispatch Mobile SMS OTP via Server
+  const handleSendMobileOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
+    setIsSendingOtp(true);
 
-    const cleanInput = enteredPhone.replace(/\D/g, '');
-
-    // Check if phone matches Dilip Purohit (9405152144) or Mahendra Purohit (9423313875)
-    const owner = AUTHORIZED_OWNERS.find(o => cleanInput.endsWith(o.phone));
-
-    if (!owner) {
-      setOtpError('Unauthorized mobile number. Password reset is restricted to registered owners only.');
-      return;
-    }
-
-    // Generate secure 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setIdentifiedOwner(owner);
-    setOtpStep('verify');
-    setOtpCountdown(60);
-
-    // Auto-trigger mobile SMS intent
-    const smsBody = encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${code}. Valid for 5 minutes.`);
-    const smsUrl = `sms:${owner.phone}?body=${smsBody}`;
-    
     try {
-      window.location.href = smsUrl;
-    } catch {}
+      const res = await sendSmsOtpToOwner(enteredPhone);
+      const owner = AUTHORIZED_OWNERS.find(o => o.phone === res.phone) || null;
+      setIdentifiedOwner(owner);
+      setOtpStep('verify');
+      setOtpSecondsLeft(300); // 5 minutes fresh timer
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to dispatch SMS OTP. Please check your mobile number.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Resend SMS Handler
+  const handleResendSms = async () => {
+    if (!enteredPhone) return;
+    setOtpError('');
+    setIsSendingOtp(true);
+    try {
+      await sendSmsOtpToOwner(enteredPhone);
+      setOtpSecondsLeft(300);
+      alert(`✅ Fresh 6-digit OTP dispatched via SMS to ${identifiedOwner?.name || 'your mobile phone'}. Valid for 5 minutes.`);
+    } catch (err: any) {
+      setOtpError(err.message || 'Could not resend SMS. Please try again.');
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   // Verify OTP
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
-    if (enteredOtp.trim() === generatedOtp.trim() || enteredOtp.trim() === '849201') {
+    setIsVerifyingOtp(true);
+
+    try {
+      const result = await verifySmsOtp(enteredPhone, enteredOtp);
+      setIdentifiedOwner(result.owner);
       setOtpStep('new_password');
-    } else {
-      setOtpError('Invalid 6-digit OTP. Please enter the verification code received on your phone SMS.');
+    } catch (err: any) {
+      setOtpError(err.message || 'Invalid or expired OTP code. Please check your SMS inbox.');
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -316,7 +348,7 @@ export const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // 1. LOGIN VIEW (INPUTS EMPTY BY DEFAULT)
+  // 1. LOGIN VIEW (INPUTS CLEAN & EMPTY BY DEFAULT)
   if (!user || !token) {
     return (
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
@@ -419,6 +451,7 @@ export const AdminDashboard: React.FC = () => {
                   <span>Owner Password Recovery</span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsOtpModalOpen(false)}
                   className="p-1.5 rounded-full hover:bg-[#F8F3EA] text-[#241A17]/60"
                 >
@@ -433,7 +466,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: ENTER OWNER MOBILE NUMBER (WITHOUT SHOWING PHONE NUMBERS) */}
+              {/* STEP 1: ENTER OWNER MOBILE NUMBER */}
               {otpStep === 'phone' && (
                 <form onSubmit={handleSendMobileOtp} className="space-y-4 text-xs">
                   <p className="text-[#241A17]/80 leading-relaxed">
@@ -467,10 +500,11 @@ export const AdminDashboard: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2"
+                    disabled={isSendingOtp}
+                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <Send className="w-4 h-4 text-[#C89B3C]" />
-                    <span>Send OTP via SMS</span>
+                    <span>{isSendingOtp ? 'Dispatching SMS...' : 'Send OTP via SMS'}</span>
                   </button>
                 </form>
               )}
@@ -485,23 +519,27 @@ export const AdminDashboard: React.FC = () => {
                         OTP Dispatched via SMS to {identifiedOwner?.name}
                       </span>
                       <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was sent to your phone via SMS. Please check your SMS inbox.
+                        A 6-digit security code was dispatched to your phone SMS. Valid for <strong>5 minutes</strong>.
                       </span>
                     </div>
                   </div>
 
-                  {/* Manual SMS Resend Trigger */}
-                  {identifiedOwner && (
-                    <div className="text-center">
-                      <a
-                        href={`sms:${identifiedOwner.phone}?body=${encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${generatedOtp}. Valid for 5 minutes.`)}`}
-                        className="inline-flex items-center gap-1.5 text-xs text-[#6E1824] bg-[#F8F3EA] border border-[#E9DED0] px-3 py-1.5 rounded-xl font-bold hover:bg-[#E9DED0] transition-colors"
-                      >
-                        <Send className="w-3.5 h-3.5 text-[#6E1824]" />
-                        <span>Resend Code via SMS</span>
-                      </a>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0]">
+                    <span className="text-[#241A17]/80 flex items-center gap-1.5 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-[#6E1824]" />
+                      <span>Code expires in: <strong className="text-[#6E1824] font-mono">{formatTime(otpSecondsLeft)}</strong></span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleResendSms}
+                      disabled={isSendingOtp}
+                      className="inline-flex items-center gap-1 text-[#6E1824] font-bold hover:underline disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isSendingOtp ? 'animate-spin' : ''}`} />
+                      <span>Resend SMS</span>
+                    </button>
+                  </div>
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
@@ -520,9 +558,10 @@ export const AdminDashboard: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all"
+                    disabled={isVerifyingOtp || otpSecondsLeft === 0}
+                    className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
                   >
-                    Verify SMS OTP
+                    {isVerifyingOtp ? 'Verifying OTP...' : 'Verify SMS OTP'}
                   </button>
                 </form>
               )}
@@ -532,7 +571,7 @@ export const AdminDashboard: React.FC = () => {
                 <form onSubmit={handleSaveNewPassword} className="space-y-4 text-xs">
                   <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>Mobile verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
+                    <span>Identity verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
                   </div>
 
                   <div className="space-y-1">
@@ -820,6 +859,7 @@ export const AdminDashboard: React.FC = () => {
                 {editingProduct ? `Edit ${editingProduct.name}` : 'Add New Sweet to Counter'}
               </h2>
               <button
+                type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-1.5 rounded-full hover:bg-[#F8F3EA] text-[#241A17]/60"
               >
