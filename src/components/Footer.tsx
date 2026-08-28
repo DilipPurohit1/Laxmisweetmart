@@ -20,8 +20,8 @@ export const Footer: React.FC = () => {
       
       {/* Compact Top Centerpiece: Logo with Tagline */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-6 border-b border-white/10 dark:border-[#382B29] flex flex-col items-center justify-center text-center space-y-2">
-        {/* Brand Name Logo Card seamlessly integrated into dark aesthetic */}
-        <div className="p-3 bg-white/5 dark:bg-white/[0.03] backdrop-blur-xs rounded-2xl border border-white/15 dark:border-[#382B29] shadow-xs">
+        {/* Brand Name Logo directly embedded seamlessly */}
+        <div className="py-1">
           <ShopBrandName size="sm" variant="footer" />
         </div>
 
