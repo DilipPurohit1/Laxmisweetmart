@@ -82,24 +82,24 @@ export const CategoryExplorer: React.FC = () => {
   };
 
   return (
-    <section id="categories" className="py-10 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
+    <section id="categories" className="py-8 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12">
         
         {/* Section Header */}
-        <div className="max-w-2xl mb-8">
-          <span className="text-[11px] font-bold tracking-widest uppercase text-[#6E1824] block mb-1">
+        <div className="max-w-2xl mb-6 sm:mb-8">
+          <span className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-[#6E1824] block mb-1">
             Explore the Counter
           </span>
-          <h2 className="text-2xl sm:text-3xl font-serif font-black text-[#241A17]">
+          <h2 className="text-xl sm:text-3xl font-serif font-black text-[#241A17]">
             Our Eight Specialties
           </h2>
           <p className="text-xs sm:text-sm text-[#241A17]/80 mt-1 leading-relaxed">
-            From slow-cooked khoya mawa to crisp Mapusa farsan and chilled malai lassi, discover the authentic flavours prepared with traditional halwai techniques.
+            From slow-cooked khoya mawa to crisp Mapusa farsan and chilled malai lassi, discover traditional Goan & Indian sweets.
           </p>
         </div>
 
-        {/* Varied Editorial Tiles Grid with Full, Generous Image Frame */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Amazon-style 2-Column Mobile Grid, Spacious Responsive Desktop Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
           {CATEGORY_TILES.map((cat) => {
             const count = products.filter(p => p.category === cat.id).length;
 
@@ -107,39 +107,39 @@ export const CategoryExplorer: React.FC = () => {
               <div
                 key={cat.id}
                 onClick={() => handleSelectCategory(cat.id)}
-                className={`group rounded-3xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C] cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between overflow-hidden ${
-                  cat.size === 'large' ? 'md:col-span-2' : ''
+                className={`group rounded-xl sm:rounded-3xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C] cursor-pointer transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden active:scale-[0.99] ${
+                  cat.size === 'large' ? 'col-span-2 md:col-span-2' : 'col-span-1'
                 }`}
               >
-                {/* Generous Image Header ensuring items are fully framed and clearly visible */}
-                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-[#F8F3EA]">
+                {/* Image Header */}
+                <div className="relative h-32 sm:h-56 lg:h-64 w-full overflow-hidden bg-[#F8F3EA]">
                   <img
                     src={cat.image}
                     alt={cat.title}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   
-                  <span className="absolute bottom-3 left-4 text-[10px] font-bold text-white uppercase tracking-wider bg-[#6E1824]/90 px-3 py-1 rounded-full shadow">
-                    {count} Products
+                  <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-4 text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-wider bg-[#6E1824]/90 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-xs">
+                    {count} Sweets
                   </span>
                 </div>
 
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-2.5">
+                <div className="p-2.5 sm:p-5 flex-1 flex flex-col justify-between space-y-1.5 sm:space-y-2.5">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors">
+                    <h3 className="text-xs sm:text-xl font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors leading-tight">
                       {cat.title}
                     </h3>
 
-                    <p className="text-xs text-[#241A17]/75 mt-1 leading-relaxed line-clamp-2">
+                    <p className="hidden sm:block text-xs text-[#241A17]/75 mt-1 leading-relaxed line-clamp-2">
                       {cat.description}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-[#E9DED0] flex items-center justify-between text-xs text-[#6E1824] font-semibold">
-                    <span>Explore Specialty</span>
-                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  <div className="pt-1.5 sm:pt-3 border-t border-[#E9DED0] flex items-center justify-between text-[10px] sm:text-xs text-[#6E1824] font-semibold">
+                    <span>Explore &rarr;</span>
+                    <span className="hidden sm:flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                       <ArrowRight className="w-4 h-4" />
                     </span>
                   </div>
