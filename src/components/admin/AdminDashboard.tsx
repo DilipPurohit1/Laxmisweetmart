@@ -20,8 +20,7 @@ import {
   ShieldCheck,
   Smartphone,
   CheckCircle2,
-  Send,
-  MessageSquare
+  Send
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
@@ -51,9 +50,9 @@ export const AdminDashboard: React.FC = () => {
     loadAdminProducts
   } = useStore();
 
-  // Login form state (Defaults to Mahendra Purohit / 123456)
-  const [ownerNameInput, setOwnerNameInput] = useState('Mahendra Purohit');
-  const [passwordInput, setPasswordInput] = useState('123456');
+  // Login form state (Empty by default for user entry)
+  const [ownerNameInput, setOwnerNameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -70,7 +69,6 @@ export const AdminDashboard: React.FC = () => {
   const [otpCountdown, setOtpCountdown] = useState(60);
   const [otpError, setOtpError] = useState('');
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-  const [smsSentNotice, setSmsSentNotice] = useState(false);
 
   // Filter & Search State
   const [searchFilter, setSearchFilter] = useState('');
@@ -120,11 +118,10 @@ export const AdminDashboard: React.FC = () => {
     setOtpError('');
     setNewPassword('');
     setConfirmPassword('');
-    setSmsSentNotice(false);
     setIsOtpModalOpen(true);
   };
 
-  // Validate Owner Phone & Dispatch Mobile OTP
+  // Validate Owner Phone & Dispatch Mobile SMS OTP
   const handleSendMobileOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
@@ -135,7 +132,7 @@ export const AdminDashboard: React.FC = () => {
     const owner = AUTHORIZED_OWNERS.find(o => cleanInput.endsWith(o.phone));
 
     if (!owner) {
-      setOtpError('Unauthorized number. Password reset OTP can only be sent to registered owners (Dilip Purohit: 9405152144 or Mahendra Purohit: 9423313875).');
+      setOtpError('Unauthorized mobile number. Password reset is restricted to registered owners only.');
       return;
     }
 
@@ -145,15 +142,13 @@ export const AdminDashboard: React.FC = () => {
     setIdentifiedOwner(owner);
     setOtpStep('verify');
     setOtpCountdown(60);
-    setSmsSentNotice(true);
 
-    // Auto-trigger mobile SMS dispatch link
+    // Auto-trigger mobile SMS intent
     const smsBody = encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${code}. Valid for 5 minutes.`);
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${owner.phone}&text=${smsBody}`;
+    const smsUrl = `sms:${owner.phone}?body=${smsBody}`;
     
-    // Open direct WhatsApp/SMS trigger in background for mobile delivery
     try {
-      window.open(whatsappUrl, '_blank');
+      window.location.href = smsUrl;
     } catch {}
   };
 
@@ -164,7 +159,7 @@ export const AdminDashboard: React.FC = () => {
     if (enteredOtp.trim() === generatedOtp.trim() || enteredOtp.trim() === '849201') {
       setOtpStep('new_password');
     } else {
-      setOtpError('Invalid 6-digit OTP. Please enter the verification code received on your phone.');
+      setOtpError('Invalid 6-digit OTP. Please enter the verification code received on your phone SMS.');
     }
   };
 
@@ -196,7 +191,7 @@ export const AdminDashboard: React.FC = () => {
       });
 
       setIsOtpModalOpen(false);
-      alert(`✅ Password successfully updated for ${activeName}! Saved to Cloud Firestore and active on all devices.`);
+      alert(`✅ Password successfully updated for ${activeName}! Active across all devices.`);
     } catch (err: any) {
       setOtpError(err.message || 'Failed to update password. Please check connection.');
     } finally {
@@ -321,7 +316,7 @@ export const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // 1. LOGIN VIEW WITH DIRECT OWNER CREDENTIALS & FORGOT PASSWORD OPTION
+  // 1. LOGIN VIEW (INPUTS EMPTY BY DEFAULT)
   if (!user || !token) {
     return (
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
@@ -339,7 +334,7 @@ export const AdminDashboard: React.FC = () => {
               Admin Sign In
             </h1>
             <p className="text-xs text-[#241A17]/70 leading-relaxed">
-              Sign in as <strong>Mahendra Purohit</strong> or <strong>Dilip Purohit</strong> to manage live products and counter pricing.
+              Sign in with your Owner Name and Password to manage live products and counter pricing.
             </p>
           </div>
 
@@ -360,7 +355,7 @@ export const AdminDashboard: React.FC = () => {
                 required
                 value={ownerNameInput}
                 onChange={(e) => setOwnerNameInput(e.target.value)}
-                placeholder="Mahendra Purohit / Dilip Purohit"
+                placeholder="Enter Owner Name"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
               />
             </div>
@@ -383,7 +378,7 @@ export const AdminDashboard: React.FC = () => {
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="123456"
+                placeholder="Enter Password"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
               />
             </div>
@@ -413,7 +408,7 @@ export const AdminDashboard: React.FC = () => {
 
         </div>
 
-        {/* FORGOT PASSWORD & MOBILE OTP VERIFICATION MODAL */}
+        {/* FORGOT PASSWORD & MOBILE SMS OTP MODAL */}
         {isOtpModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
@@ -438,22 +433,18 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: ENTER OWNER MOBILE NUMBER */}
+              {/* STEP 1: ENTER OWNER MOBILE NUMBER (WITHOUT SHOWING PHONE NUMBERS) */}
               {otpStep === 'phone' && (
                 <form onSubmit={handleSendMobileOtp} className="space-y-4 text-xs">
                   <p className="text-[#241A17]/80 leading-relaxed">
-                    Enter your registered Owner Mobile Number. The 6-digit OTP will be sent directly to your phone:
+                    Enter your registered Owner Mobile Number. The 6-digit OTP will be dispatched to your phone SMS:
                   </p>
 
                   <div className="p-3 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-1.5 text-[11px]">
-                    <span className="font-bold text-[#6E1824] block">Authorized Owner Numbers:</span>
-                    <div className="flex items-center justify-between text-[#241A17]/80">
-                      <span>• Dilip Purohit</span>
-                      <strong className="font-mono">+91 94051 52144</strong>
-                    </div>
-                    <div className="flex items-center justify-between text-[#241A17]/80">
-                      <span>• Mahendra Purohit</span>
-                      <strong className="font-mono">+91 94233 13875</strong>
+                    <span className="font-bold text-[#6E1824] block">Authorized Owners:</span>
+                    <div className="text-[#241A17]/80 space-y-0.5">
+                      <div>• Dilip Purohit</div>
+                      <div>• Mahendra Purohit</div>
                     </div>
                   </div>
 
@@ -467,7 +458,7 @@ export const AdminDashboard: React.FC = () => {
                         required
                         value={enteredPhone}
                         onChange={(e) => setEnteredPhone(e.target.value)}
-                        placeholder="e.g. 9405152144 or 9423313875"
+                        placeholder="Enter your 10-digit registered mobile number"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
                       />
                       <Smartphone className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
@@ -479,44 +470,42 @@ export const AdminDashboard: React.FC = () => {
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2"
                   >
                     <Send className="w-4 h-4 text-[#C89B3C]" />
-                    <span>Send OTP to My Mobile</span>
+                    <span>Send OTP via SMS</span>
                   </button>
                 </form>
               )}
 
-              {/* STEP 2: ENTER OTP RECEIVED ON MOBILE */}
+              {/* STEP 2: ENTER OTP RECEIVED VIA SMS */}
               {otpStep === 'verify' && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
                   <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <span className="font-bold block text-emerald-900">
-                        OTP Dispatched to {identifiedOwner?.name} ({identifiedOwner?.displayPhone})
+                        OTP Dispatched via SMS to {identifiedOwner?.name}
                       </span>
                       <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was sent to your phone. Check your phone SMS or WhatsApp to view the code.
+                        A 6-digit security code was sent to your phone via SMS. Please check your SMS inbox.
                       </span>
                     </div>
                   </div>
 
-                  {/* Manual Quick Dispatch Button */}
+                  {/* Manual SMS Resend Trigger */}
                   {identifiedOwner && (
                     <div className="text-center">
                       <a
-                        href={`https://api.whatsapp.com/send?phone=91${identifiedOwner.phone}&text=${encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${generatedOtp}. Valid for 5 minutes.`)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl font-bold hover:bg-emerald-100 transition-colors"
+                        href={`sms:${identifiedOwner.phone}?body=${encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${generatedOtp}. Valid for 5 minutes.`)}`}
+                        className="inline-flex items-center gap-1.5 text-xs text-[#6E1824] bg-[#F8F3EA] border border-[#E9DED0] px-3 py-1.5 rounded-xl font-bold hover:bg-[#E9DED0] transition-colors"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Resend OTP to WhatsApp ({identifiedOwner.displayPhone})</span>
+                        <Send className="w-3.5 h-3.5 text-[#6E1824]" />
+                        <span>Resend Code via SMS</span>
                       </a>
                     </div>
                   )}
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Enter 6-Digit OTP from Mobile
+                      Enter 6-Digit OTP from SMS
                     </label>
                     <input
                       type="text"
@@ -533,7 +522,7 @@ export const AdminDashboard: React.FC = () => {
                     type="submit"
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all"
                   >
-                    Verify Phone OTP
+                    Verify SMS OTP
                   </button>
                 </form>
               )}
@@ -627,7 +616,7 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right hidden sm:block">
               <span className="text-[10px] text-[#241A17]/60 block font-medium">Logged in as Owner</span>
-              <span className="font-bold text-[#241A17]">{user?.fullName || 'Mahendra Purohit'}</span>
+              <span className="font-bold text-[#241A17]">{user?.fullName || 'Owner'}</span>
             </div>
 
             <button
