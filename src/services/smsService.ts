@@ -27,9 +27,8 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
   }
 
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // 1. Dispatch via Serverless API endpoint
+  // 1. Dispatch via Serverless API endpoint (Primary Single Source of Truth)
   try {
     const apiRes = await fetch('/api/send-otp', {
       method: 'POST',
@@ -52,9 +51,10 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     console.warn('Serverless API dispatch note:', e);
   }
 
-  // 2. Direct client-side FormSubmit fallback
+  // 2. Direct client-side FormSubmit fallback ONLY IF serverless endpoint is unreachable
+  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
   try {
-    fetch(`https://formsubmit.co/ajax/${owner.email}`, {
+    await fetch(`https://formsubmit.co/ajax/${owner.email}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         _template: 'table',
         _captcha: 'false'
       })
-    }).catch(() => {});
+    });
 
     // Save in Firestore
     const payload = {
@@ -111,7 +111,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
 }
 
 /**
- * Strictly verifies the 6-digit Email OTP
+ * Strictly verifies the 6-digit Email OTP against all active codes
  */
 export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
   const cleanEmail = rawEmail.trim().toLowerCase();
