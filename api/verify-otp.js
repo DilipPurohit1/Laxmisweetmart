@@ -1,8 +1,18 @@
 import https from 'https';
 
 const AUTHORIZED_OWNERS = [
-  { name: 'Dilip Purohit', email: 'imdilippurohit@gmail.com', phone: '9405152144' },
-  { name: 'Mahendra Purohit', email: 'laxmisweetmart@gmail.com', phone: '9423313875' }
+  { 
+    name: 'Dilip Purohit', 
+    email: 'imdilippurohit@gmail.com', 
+    phone: '9405152144',
+    passcodes: ['2144', '940515', '9405152144'] 
+  },
+  { 
+    name: 'Mahendra Purohit', 
+    email: 'laxmisweetmart@gmail.com', 
+    phone: '9423313875',
+    passcodes: ['3875', '942331', '9423313875'] 
+  }
 ];
 
 const FIRESTORE_PROJECT_ID = 'laxmi-sweet-mart';
@@ -65,7 +75,7 @@ export default async function handler(req, res) {
   try {
     const { email, otp } = req.body || {};
     if (!email || !otp) {
-      return res.status(400).json({ error: 'Both email and 6-digit OTP are required.' });
+      return res.status(400).json({ error: 'Both email and verification code are required.' });
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
@@ -79,48 +89,37 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized email address.' });
     }
 
-    if (cleanOtp.length !== 6) {
-      return res.status(400).json({ error: 'Please enter the 6-digit OTP code received in your email.' });
-    }
+    // Check if entered code matches owner's registered passcodes
+    const isOwnerPasscode = owner.passcodes.includes(cleanOtp);
 
     // Read active OTP from Cloud Firestore
     const { status, data } = await getJson(FIRESTORE_OTP_URL);
-    if (status !== 200 || !data || !data.fields) {
-      return res.status(400).json({ error: 'No active OTP found. Please request a new code.' });
+    let isMatch = false;
+
+    if (status === 200 && data && data.fields) {
+      const f = data.fields;
+      const storedEmail = (f.email?.stringValue || '').toLowerCase();
+      const storedCode = f.otpCode?.stringValue || '';
+      const expiresAt = Number(f.expiresAt?.integerValue || 0);
+      const isUsed = f.isUsed?.booleanValue ?? false;
+
+      if (storedEmail === owner.email.toLowerCase() && !isUsed && Date.now() <= expiresAt && storedCode === cleanOtp) {
+        isMatch = true;
+      }
     }
 
-    const f = data.fields;
-    const storedEmail = (f.email?.stringValue || '').toLowerCase();
-    const storedCode = f.otpCode?.stringValue || '';
-    const expiresAt = Number(f.expiresAt?.integerValue || 0);
-    const isUsed = f.isUsed?.booleanValue ?? false;
-
-    if (storedEmail !== owner.email.toLowerCase()) {
-      return res.status(400).json({ error: 'OTP does not match this email address.' });
-    }
-
-    if (Date.now() > expiresAt) {
+    if (!isMatch && !isOwnerPasscode) {
       return res.status(400).json({
-        error: 'This OTP has expired (5-minute limit). Please request a fresh OTP.'
+        error: 'Invalid verification code. Please check and re-enter.'
       });
     }
 
-    if (isUsed) {
-      return res.status(400).json({
-        error: 'This OTP has already been used. Please request a new OTP.'
-      });
-    }
-
-    if (storedCode !== cleanOtp) {
-      return res.status(400).json({
-        error: 'Incorrect OTP code. Please check your email inbox and re-enter.'
-      });
-    }
-
-    // Mark as used
+    // Mark as used in Firestore
     await patchFirestore({
       fields: {
-        ...f,
+        email: { stringValue: owner.email },
+        ownerName: { stringValue: owner.name },
+        otpCode: { stringValue: cleanOtp },
         isUsed: { booleanValue: true },
         updatedAt: { stringValue: new Date().toISOString() }
       }
