@@ -67,8 +67,8 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     document.title = isAdminView 
-      ? '🔒 Owner Portal | Shree Laxmi Sweet Mart' 
-      : 'Shree Laxmi Sweet Mart';
+      ? '🔒 Owner Portal | श्री Laxmi Sweet Mart' 
+      : 'श्री Laxmi Sweet Mart';
   }, [isAdminView]);
 
   return (
