@@ -60,14 +60,18 @@
   border-color: #3D302E !important;
 }
 
-.dark .text-\[\#241A17\] {
-  color: #FFFFFF !important;
+.dark .text-\[\#241A17\],
+.dark [class*="text-[#241A17]"] {
+  color: #E2DACF !important;
 }
 
-.dark .text-\[\#241A17\]\/80,
-.dark .text-\[\#241A17\]\/75,
-.dark .text-\[\#241A17\]\/70 {
-  color: #E2DACF !important;
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark strong,
+.dark b {
+  color: #FFFFFF !important;
 }
 
 .dark .text-\[\#241A17\]\/60,
