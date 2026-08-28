@@ -52,13 +52,21 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, { hasError:
 export const AppContent: React.FC = () => {
   const { isAdminView } = useStore();
 
-  // Ensure page always starts at the top on load/refresh
+  // Ensure page always starts at the top on load/refresh and set dynamic tab title
   useEffect(() => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    if (isAdminView) {
+      document.title = '🔒 Owner Portal | Shri Laxmi Sweet Mart™';
+    } else {
+      document.title = 'श्री Laxmi Sweet Mart™ | Mapusa, Goa · Authentic Sweets & Farsan (Estd. 1985)';
+    }
+  }, [isAdminView]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F3EA] text-[#241A17] font-sans selection:bg-[#C89B3C] selection:text-white">
