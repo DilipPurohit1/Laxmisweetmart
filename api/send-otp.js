@@ -33,8 +33,45 @@ function patchFirestore(docData) {
   });
 }
 
+function sendFormSubmitEmail(targetEmail, otpCode, ownerName) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({
+      _subject: `Shri Laxmi Sweet Mart - Admin OTP Verification: ${otpCode}`,
+      name: 'Shri Laxmi Sweet Mart Security',
+      owner_name: ownerName,
+      otp_code: otpCode,
+      message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${otpCode}. This code is valid for 5 minutes. Do not share with anyone.`,
+      _template: 'table',
+      _captcha: 'false'
+    });
+
+    const req = https.request(
+      {
+        hostname: 'formsubmit.co',
+        path: `/ajax/${targetEmail}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': 'https://shri-laxmi-sweet-mart.vercel.app',
+          'Referer': 'https://shri-laxmi-sweet-mart.vercel.app/',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (c) => (body += c));
+        res.on('end', () => resolve({ status: res.statusCode, body }));
+      }
+    );
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
+
 export default async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -60,7 +97,7 @@ export default async function handler(req, res) {
 
     if (!owner) {
       return res.status(403).json({
-        error: 'Unauthorized email. Password reset is restricted to registered owner email addresses (Dilip Purohit & Mahendra Purohit) only.'
+        error: 'Unauthorized email. Password reset is restricted to registered owner email addresses only.'
       });
     }
 
@@ -82,15 +119,20 @@ export default async function handler(req, res) {
 
     await patchFirestore(firestorePayload);
 
-    // 2. Dispatch Email
-    console.log(`✅ OTP ${otpCode} dispatched to ${owner.email} for ${owner.name}`);
+    // 2. Dispatch Email directly via FormSubmit
+    try {
+      await sendFormSubmitEmail(owner.email, otpCode, owner.name);
+      console.log(`✓ Email OTP ${otpCode} successfully sent to ${owner.email}`);
+    } catch (mailErr) {
+      console.warn('FormSubmit dispatch warning:', mailErr);
+    }
 
     return res.status(200).json({
       success: true,
       ownerName: owner.name,
       email: owner.email,
       expiresAt,
-      message: `6-digit OTP has been sent to ${owner.email}. Valid for 5 minutes.`
+      message: `6-digit OTP has been sent to your email. Valid for 5 minutes.`
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

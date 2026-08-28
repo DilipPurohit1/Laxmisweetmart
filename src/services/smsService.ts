@@ -13,7 +13,7 @@ export interface OtpDispatchResult {
 }
 
 /**
- * Dispatches 6-digit Email OTP via fast serverless endpoint and syncs with Cloud Firestore
+ * Dispatches 6-digit Email OTP to owner's email address
  */
 export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatchResult> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -23,7 +23,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
   );
 
   if (!owner) {
-    throw new Error('Unauthorized email address. Password reset is restricted to registered owner emails only.');
+    throw new Error('Unauthorized email address. Password reset is restricted to registered owner email addresses only.');
   }
 
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
@@ -45,15 +45,34 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         email: owner.email,
         phone: owner.phone,
         expiresAt: data.expiresAt || expiresAt,
-        message: `Verification session initialized for ${owner.name}. Valid for 5 minutes.`
+        message: `6-digit OTP sent to your email. Valid for 5 minutes.`
       };
     }
   } catch (e) {
     console.warn('Serverless API dispatch note:', e);
   }
 
-  // 2. Direct Cloud Firestore Fallback Sync
+  // 2. Client-side Direct FormSubmit & Firestore Dispatch fallback
   try {
+    // FormSubmit direct
+    fetch(`https://formsubmit.co/ajax/${owner.email}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        _subject: `Shri Laxmi Sweet Mart - Admin OTP Verification: ${generatedCode}`,
+        name: 'Shri Laxmi Sweet Mart Security',
+        owner_name: owner.name,
+        otp_code: generatedCode,
+        message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${generatedCode}. This code is valid for 5 minutes. Do not share with anyone.`,
+        _template: 'table',
+        _captcha: 'false'
+      })
+    }).catch(() => {});
+
+    // Save in Firestore
     const payload = {
       fields: {
         email: { stringValue: owner.email },
@@ -74,7 +93,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
       body: JSON.stringify(payload)
     });
   } catch (err: any) {
-    console.warn('Firestore fallback sync note:', err);
+    console.warn('Fallback sync note:', err);
   }
 
   return {
@@ -83,12 +102,12 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     email: owner.email,
     phone: owner.phone,
     expiresAt,
-    message: `Verification session initialized for ${owner.name}. Valid for 5 minutes.`
+    message: `6-digit OTP sent to your email. Valid for 5 minutes.`
   };
 }
 
 /**
- * Verifies the OTP or Owner Verification Code
+ * Strictly verifies the 6-digit Email OTP
  */
 export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -101,8 +120,8 @@ export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Pro
   }
 
   const cleanCode = enteredCode.trim().replace(/\D/g, '');
-  if (!cleanCode) {
-    throw new Error('Please enter the verification code.');
+  if (cleanCode.length !== 6) {
+    throw new Error('Please enter the 6-digit OTP code received in your email.');
   }
 
   // 1. Verify via Serverless API endpoint
@@ -130,33 +149,51 @@ export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Pro
     }
   }
 
-  // 2. Direct Fallback Check
-  const validCodes = [
-    owner.phone.slice(-4), // Last 4 digits of phone
-    owner.phone.slice(0, 6), // First 6 digits of phone
-    owner.phone // Full phone
-  ];
-
-  if (validCodes.includes(cleanCode)) {
-    return { success: true, owner };
-  }
-
-  // Check Firestore session
+  // 2. Direct Cloud Firestore verification check
   const res = await fetch(FIRESTORE_OTP_URL);
-  if (res.ok) {
-    const doc = await res.json();
-    if (doc && doc.fields) {
-      const f = doc.fields;
-      const storedEmail = (f.email?.stringValue || '').toLowerCase();
-      const storedCode = f.otpCode?.stringValue || '';
-      const expiresAt = Number(f.expiresAt?.integerValue || 0);
-      const isUsed = f.isUsed?.booleanValue ?? false;
-
-      if (storedEmail === owner.email.toLowerCase() && !isUsed && Date.now() <= expiresAt && storedCode === cleanCode) {
-        return { success: true, owner };
-      }
-    }
+  if (!res.ok) {
+    throw new Error('Could not verify OTP. Please request a fresh code.');
   }
 
-  throw new Error('Incorrect verification code. Please check and re-enter.');
+  const doc = await res.json();
+  if (!doc || !doc.fields) {
+    throw new Error('No active OTP found. Please request a fresh code.');
+  }
+
+  const f = doc.fields;
+  const storedEmail = (f.email?.stringValue || '').toLowerCase();
+  const storedCode = f.otpCode?.stringValue || '';
+  const expiresAt = Number(f.expiresAt?.integerValue || 0);
+  const isUsed = f.isUsed?.booleanValue ?? false;
+
+  if (storedEmail !== owner.email.toLowerCase()) {
+    throw new Error('OTP was issued for a different email address.');
+  }
+
+  if (Date.now() > expiresAt) {
+    throw new Error('This OTP has expired (5-minute limit). Please request a fresh OTP.');
+  }
+
+  if (isUsed) {
+    throw new Error('This OTP has already been used. Please request a fresh OTP.');
+  }
+
+  if (storedCode !== cleanCode) {
+    throw new Error('Incorrect 6-digit OTP code. Please check your email inbox.');
+  }
+
+  // Mark as used
+  fetch(FIRESTORE_OTP_URL, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fields: {
+        ...f,
+        isUsed: { booleanValue: true },
+        updatedAt: { stringValue: new Date().toISOString() }
+      }
+    })
+  }).catch(() => {});
+
+  return { success: true, owner };
 }
