@@ -524,6 +524,8 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  <div id="recaptcha-container"></div>
+
                   <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-[#F8F3EA] border border-[#E9DED0]">
                     <span className="text-[#241A17]/80 flex items-center gap-1.5 font-medium">
                       <Clock className="w-3.5 h-3.5 text-[#6E1824]" />
