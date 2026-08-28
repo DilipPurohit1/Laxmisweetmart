@@ -1,27 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#8B1E2E" />
-      <stop offset="100%" stop-color="#4A0E17" />
-    </radialGradient>
     <linearGradient id="jalebiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFE066" />
-      <stop offset="30%" stop-color="#FF9900" />
-      <stop offset="75%" stop-color="#FF5500" />
-      <stop offset="100%" stop-color="#CC3300" />
+      <stop offset="25%" stop-color="#FF9900" />
+      <stop offset="70%" stop-color="#FF5500" />
+      <stop offset="100%" stop-color="#D92600" />
     </linearGradient>
-    <linearGradient id="jalebiGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FFF3A8" />
-      <stop offset="100%" stop-color="#FFAA00" />
+    <linearGradient id="glazeHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FFE57F" />
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#bgGrad)" stroke="#F0C05A" stroke-width="2.5" />
+  <rect width="64" height="64" rx="16" fill="#FFFFFF" stroke="#D4AF37" stroke-width="2.5" />
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,34 C18,22 34,14 44,22 C52,28 48,46 36,48 C24,50 14,36 20,24 C26,14 46,14 50,28 C54,42 36,52 26,48 C16,42 22,26 34,22 C42,18 46,32 40,38 C34,44 26,38 28,30 C30,24 38,26 38,32" stroke="#801800" stroke-width="8" />
+    <path d="M22,34 C18,22 34,14 44,22 C52,28 48,46 36,48 C24,50 14,36 20,24 C26,14 46,14 50,28 C54,42 36,52 26,48 C16,42 22,26 34,22 C42,18 46,32 40,38 C34,44 26,38 28,30 C30,24 38,26 38,32" stroke="#B43403" stroke-width="8.5" />
     <path d="M22,34 C18,22 34,14 44,22 C52,28 48,46 36,48 C24,50 14,36 20,24 C26,14 46,14 50,28 C54,42 36,52 26,48 C16,42 22,26 34,22 C42,18 46,32 40,38 C34,44 26,38 28,30 C30,24 38,26 38,32" stroke="url(#jalebiGrad)" stroke-width="6" />
-    <path d="M24,32 C20,24 34,16 42,22 C48,27 46,42 36,44" stroke="url(#jalebiGlow)" stroke-width="2.2" />
-    <path d="M28,26 C34,18 46,20 48,30" stroke="#FFF7CC" stroke-width="1.8" />
+    <path d="M24,32 C20,24 34,16 42,22 C48,27 46,42 36,44" stroke="url(#glazeHighlight)" stroke-width="2" />
+    <path d="M28,26 C34,18 46,20 48,30" stroke="#FFFFFF" stroke-width="1.8" />
   </g>
-  <circle cx="34" cy="30" r="2" fill="#16A34A" stroke="#86EFAC" stroke-width="0.6" />
-  <circle cx="42" cy="24" r="1.5" fill="#15803D" />
+  <circle cx="34" cy="30" r="2.5" fill="#16A34A" stroke="#14532D" stroke-width="0.5" />
+  <circle cx="42" cy="24" r="2" fill="#15803D" />
 </svg>
