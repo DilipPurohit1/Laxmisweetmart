@@ -13,7 +13,7 @@ export interface OtpDispatchResult {
 }
 
 /**
- * Dispatches 6-digit Email OTP to owner's email address with 15-minute validity
+ * Dispatches 6-digit Email OTP to owner's email address with fast delivery
  */
 export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatchResult> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -26,7 +26,8 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     throw new Error('Unauthorized email address. Password reset is restricted to registered owner email addresses only.');
   }
 
-  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
 
   // 1. Dispatch via Serverless API endpoint
   try {
@@ -44,16 +45,14 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         email: owner.email,
         phone: owner.phone,
         expiresAt: data.expiresAt || expiresAt,
-        message: `6-digit OTP sent to your email. Valid for 15 minutes.`
+        message: `6-digit OTP sent to your email. Valid for 5 minutes.`
       };
     }
   } catch (e) {
     console.warn('Serverless API dispatch note:', e);
   }
 
-  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // 2. Client-side FormSubmit fallback
+  // 2. Direct client-side FormSubmit fallback
   try {
     fetch(`https://formsubmit.co/ajax/${owner.email}`, {
       method: 'POST',
@@ -66,7 +65,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         name: 'Shri Laxmi Sweet Mart Security',
         owner_name: owner.name,
         otp_code: generatedCode,
-        message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${generatedCode}. This code is valid for 15 minutes. Do not share with anyone.`,
+        message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${generatedCode}. This code is valid for 5 minutes. Do not share with anyone.`,
         _template: 'table',
         _captcha: 'false'
       })
@@ -107,12 +106,12 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     email: owner.email,
     phone: owner.phone,
     expiresAt,
-    message: `6-digit OTP sent to your email. Valid for 15 minutes.`
+    message: `6-digit OTP sent to your email. Valid for 5 minutes.`
   };
 }
 
 /**
- * Strictly verifies the 6-digit Email OTP against all active codes in the 15-min window
+ * Strictly verifies the 6-digit Email OTP
  */
 export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -183,7 +182,7 @@ export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Pro
   }
 
   if (Date.now() > expiresAt) {
-    throw new Error('This OTP has expired (15-minute limit). Please request a fresh OTP.');
+    throw new Error('This OTP has expired (5-minute limit). Please request a fresh OTP.');
   }
 
   if (isUsed) {

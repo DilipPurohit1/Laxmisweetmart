@@ -151,7 +151,7 @@ export const api = {
       return { token, user };
     }
 
-    throw new Error('Invalid Owner Name or Password. Please enter "Mahendra Purohit" and password "123456", or use Forgot Password.');
+    throw new Error('Invalid Owner Name or Password. Please check your credentials or click Forgot Password.');
   },
 
   // Save / Update Admin Credentials in Cloud Firestore

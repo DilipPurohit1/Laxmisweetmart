@@ -56,7 +56,7 @@ function sendFormSubmitEmail(targetEmail, otpCode, ownerName) {
       name: 'Shri Laxmi Sweet Mart Security',
       owner_name: ownerName,
       otp_code: otpCode,
-      message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${otpCode}. This code is valid for 15 minutes. Do not share with anyone.`,
+      message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${otpCode}. This code is valid for 5 minutes. Do not share with anyone.`,
       _template: 'table',
       _captcha: 'false'
     });
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Read existing OTP session to keep previous codes valid as well
+    // Read existing OTP session to keep recent active codes valid
     const existing = await getJson(FIRESTORE_OTP_URL);
     let validCodes = [];
     if (existing.status === 200 && existing.data && existing.data.fields) {
@@ -137,8 +137,8 @@ export default async function handler(req, res) {
     validCodes.push(newOtpCode);
     validCodes = Array.from(new Set(validCodes)); // unique
 
-    // 15-minute validity window
-    const expiresAt = Date.now() + 15 * 60 * 1000;
+    // 5-minute validity window
+    const expiresAt = Date.now() + 5 * 60 * 1000;
 
     // 1. Save to Cloud Firestore
     const firestorePayload = {
@@ -157,17 +157,18 @@ export default async function handler(req, res) {
       }
     };
 
-    await patchFirestore(firestorePayload);
-
-    // 2. Dispatch Email directly via FormSubmit
-    sendFormSubmitEmail(owner.email, newOtpCode, owner.name).catch(() => {});
+    // Parallel firestore save & email dispatch
+    await Promise.all([
+      patchFirestore(firestorePayload),
+      sendFormSubmitEmail(owner.email, newOtpCode, owner.name)
+    ]);
 
     return res.status(200).json({
       success: true,
       ownerName: owner.name,
       email: owner.email,
       expiresAt,
-      message: `6-digit OTP has been sent to your email. Valid for 15 minutes.`
+      message: `6-digit OTP has been sent to your email. Valid for 5 minutes.`
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

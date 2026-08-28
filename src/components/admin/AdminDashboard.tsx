@@ -139,7 +139,7 @@ export const AdminDashboard: React.FC = () => {
     setOtpError('');
     setNewPassword('');
     setConfirmPassword('');
-    setOtpSecondsLeft(900);
+    setOtpSecondsLeft(300);
     setIsOtpModalOpen(true);
   };
 
@@ -154,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
       const owner = AUTHORIZED_OWNERS.find(o => o.email.toLowerCase() === res.email.toLowerCase()) || null;
       setIdentifiedOwner(owner);
       setOtpStage('verify_otp');
-      setOtpSecondsLeft(900); // 15-minute fresh timer
+      setOtpSecondsLeft(300); // 5-minute fresh timer
     } catch (err: any) {
       setOtpError(err.message || 'Failed to send OTP. Please enter a valid registered owner email.');
     } finally {
@@ -169,8 +169,8 @@ export const AdminDashboard: React.FC = () => {
     setIsSendingOtp(true);
     try {
       await sendEmailOtpToOwner(enteredEmail);
-      setOtpSecondsLeft(900);
-      alert('✅ Fresh 6-digit OTP sent to your email inbox. Valid for 15 minutes.');
+      setOtpSecondsLeft(300);
+      alert('✅ Fresh 6-digit OTP sent to your email inbox. Valid for 5 minutes.');
     } catch (err: any) {
       setOtpError(err.message || 'Could not resend email. Please try again.');
     } finally {
@@ -520,7 +520,7 @@ export const AdminDashboard: React.FC = () => {
                         OTP Dispatched to {identifiedOwner?.name}
                       </span>
                       <span className="block text-[11px] text-amber-800 leading-snug">
-                        A 6-digit security code was dispatched to your email. Check your Inbox and Spam folder. Valid for <strong>15 minutes</strong>.
+                        A 6-digit security code was dispatched to your email. Check your Inbox and Spam folder. Valid for <strong>5 minutes</strong>.
                       </span>
                     </div>
                   </div>

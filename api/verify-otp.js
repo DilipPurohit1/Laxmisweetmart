@@ -9,7 +9,7 @@ const FIRESTORE_PROJECT_ID = 'laxmi-sweet-mart';
 const FIRESTORE_OTP_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/settings/admin_otp`;
 
 function getJson(url) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     https.get(url, (res) => {
       let body = '';
       res.on('data', (chunk) => (body += chunk));
@@ -20,7 +20,7 @@ function getJson(url) {
           resolve({ status: res.statusCode, data: null });
         }
       });
-    }).on('error', reject);
+    }).on('error', reject => resolve({ status: 500, data: null }));
   });
 }
 
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     const expiresAt = Number(f.expiresAt?.integerValue || 0);
     const isUsed = f.isUsed?.booleanValue ?? false;
 
-    // Collect all valid codes for this session
+    // Collect all valid active codes for this session
     const validCodes = [storedCode];
     if (f.previousCodes?.arrayValue?.values) {
       f.previousCodes.arrayValue.values.forEach((v) => {
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
 
     if (Date.now() > expiresAt) {
       return res.status(400).json({
-        error: 'This OTP has expired (15-minute limit). Please request a fresh OTP.'
+        error: 'This OTP has expired (5-minute limit). Please request a fresh OTP.'
       });
     }
 
