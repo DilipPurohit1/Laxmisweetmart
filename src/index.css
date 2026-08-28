@@ -47,9 +47,9 @@
   }
 }
 
-/* Global Dark Mode Overrides for warm heritage styling */
+/* Global Dark Mode Overrides for high contrast & perfect visibility */
 .dark .bg-\[\#FFFDF8\] {
-  background-color: #1C1615 !important;
+  background-color: #1D1716 !important;
 }
 
 .dark .bg-\[\#F8F3EA\] {
@@ -57,27 +57,82 @@
 }
 
 .dark .border-\[\#E9DED0\] {
-  border-color: #382B29 !important;
+  border-color: #3D302E !important;
 }
 
 .dark .text-\[\#241A17\] {
-  color: #F5EFEB !important;
+  color: #FFFFFF !important;
 }
 
 .dark .text-\[\#241A17\]\/80,
 .dark .text-\[\#241A17\]\/75,
 .dark .text-\[\#241A17\]\/70 {
-  color: #D1C7BD !important;
+  color: #E2DACF !important;
 }
 
-.dark .text-\[\#241A17\]\/60 {
-  color: #A89F95 !important;
+.dark .text-\[\#241A17\]\/60,
+.dark .text-\[\#241A17\]\/50 {
+  color: #B8ADA0 !important;
+}
+
+/* High visibility luminous gold for accent text in dark mode */
+.dark .text-\[\#6E1824\] {
+  color: #F0C05A !important;
+}
+
+.dark .text-\[\#B8860B\] {
+  color: #F5D070 !important;
+}
+
+.dark .hover\:text-\[\#6E1824\]:hover {
+  color: #F0C05A !important;
+}
+
+.dark .bg-\[\#6E1824\] {
+  background-color: #8B1E2E !important;
+}
+
+.dark .hover\:bg-\[\#52111A\]:hover {
+  background-color: #701522 !important;
+}
+
+.dark .bg-\[\#6E1824\]\/10 {
+  background-color: rgba(240, 192, 90, 0.15) !important;
+  color: #F0C05A !important;
 }
 
 .dark input,
 .dark textarea,
 .dark select {
-  color: #F5EFEB !important;
+  background-color: #1A1413 !important;
+  color: #FFFFFF !important;
+  border-color: #3D302E !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.dark .text-amber-900,
+.dark .text-amber-800 {
+  color: #FDE68A !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+}
+
+.dark .text-red-700 {
+  color: #FCA5A5 !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+
+.dark .text-emerald-900,
+.dark .text-emerald-800 {
+  color: #A7F3D0 !important;
 }
 
 /* ========================================================================= */
