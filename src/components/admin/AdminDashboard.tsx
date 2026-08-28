@@ -545,7 +545,7 @@ export const AdminDashboard: React.FC = () => {
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Enter 6-Digit OTP or Owner Passkey
+                      Enter 6-Digit OTP from SMS
                     </label>
                     <input
                       type="text"
@@ -553,11 +553,11 @@ export const AdminDashboard: React.FC = () => {
                       required
                       value={enteredOtp}
                       onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Enter OTP or Phone Last 4 Digits"
+                      placeholder="••••••"
                       className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
                     />
                     <span className="block text-[10px] text-[#241A17]/60 text-center mt-1">
-                      💡 Tip: You can enter the SMS code or your Owner Passkey (last 4 digits of your mobile) for instant access.
+                      Enter the 6-digit verification code sent to your phone SMS.
                     </span>
                   </div>
 
