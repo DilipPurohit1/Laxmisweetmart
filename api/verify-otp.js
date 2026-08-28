@@ -95,13 +95,21 @@ export default async function handler(req, res) {
     const expiresAt = Number(f.expiresAt?.integerValue || 0);
     const isUsed = f.isUsed?.booleanValue ?? false;
 
+    // Collect all valid codes for this session
+    const validCodes = [storedCode];
+    if (f.previousCodes?.arrayValue?.values) {
+      f.previousCodes.arrayValue.values.forEach((v) => {
+        if (v.stringValue) validCodes.push(v.stringValue);
+      });
+    }
+
     if (storedEmail !== owner.email.toLowerCase()) {
       return res.status(400).json({ error: 'OTP was issued for a different email address.' });
     }
 
     if (Date.now() > expiresAt) {
       return res.status(400).json({
-        error: 'This OTP has expired (5-minute limit). Please request a fresh OTP.'
+        error: 'This OTP has expired (15-minute limit). Please request a fresh OTP.'
       });
     }
 
@@ -111,7 +119,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (storedCode !== cleanOtp) {
+    if (!validCodes.includes(cleanOtp)) {
       return res.status(400).json({
         error: 'Incorrect OTP code. Please check the 6-digit code received in your email inbox.'
       });

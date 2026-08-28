@@ -13,7 +13,7 @@ export interface OtpDispatchResult {
 }
 
 /**
- * Dispatches 6-digit Email OTP to owner's email address
+ * Dispatches 6-digit Email OTP to owner's email address with 15-minute validity
  */
 export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatchResult> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -26,8 +26,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     throw new Error('Unauthorized email address. Password reset is restricted to registered owner email addresses only.');
   }
 
-  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
 
   // 1. Dispatch via Serverless API endpoint
   try {
@@ -45,16 +44,17 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         email: owner.email,
         phone: owner.phone,
         expiresAt: data.expiresAt || expiresAt,
-        message: `6-digit OTP sent to your email. Valid for 5 minutes.`
+        message: `6-digit OTP sent to your email. Valid for 15 minutes.`
       };
     }
   } catch (e) {
     console.warn('Serverless API dispatch note:', e);
   }
 
-  // 2. Client-side Direct FormSubmit & Firestore Dispatch fallback
+  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // 2. Client-side FormSubmit fallback
   try {
-    // FormSubmit direct
     fetch(`https://formsubmit.co/ajax/${owner.email}`, {
       method: 'POST',
       headers: {
@@ -66,7 +66,7 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         name: 'Shri Laxmi Sweet Mart Security',
         owner_name: owner.name,
         otp_code: generatedCode,
-        message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${generatedCode}. This code is valid for 5 minutes. Do not share with anyone.`,
+        message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${generatedCode}. This code is valid for 15 minutes. Do not share with anyone.`,
         _template: 'table',
         _captcha: 'false'
       })
@@ -78,6 +78,11 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
         email: { stringValue: owner.email },
         ownerName: { stringValue: owner.name },
         otpCode: { stringValue: generatedCode },
+        previousCodes: {
+          arrayValue: {
+            values: [{ stringValue: generatedCode }]
+          }
+        },
         expiresAt: { integerValue: expiresAt.toString() },
         isUsed: { booleanValue: false },
         updatedAt: { stringValue: new Date().toISOString() }
@@ -102,12 +107,12 @@ export async function sendEmailOtpToOwner(rawEmail: string): Promise<OtpDispatch
     email: owner.email,
     phone: owner.phone,
     expiresAt,
-    message: `6-digit OTP sent to your email. Valid for 5 minutes.`
+    message: `6-digit OTP sent to your email. Valid for 15 minutes.`
   };
 }
 
 /**
- * Strictly verifies the 6-digit Email OTP
+ * Strictly verifies the 6-digit Email OTP against all active codes in the 15-min window
  */
 export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Promise<{ success: boolean; owner: AuthorizedOwner }> {
   const cleanEmail = rawEmail.trim().toLowerCase();
@@ -149,7 +154,7 @@ export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Pro
     }
   }
 
-  // 2. Direct Cloud Firestore verification check
+  // 2. Direct Cloud Firestore fallback check
   const res = await fetch(FIRESTORE_OTP_URL);
   if (!res.ok) {
     throw new Error('Could not verify OTP. Please request a fresh code.');
@@ -166,19 +171,26 @@ export async function verifyEmailOtp(rawEmail: string, enteredCode: string): Pro
   const expiresAt = Number(f.expiresAt?.integerValue || 0);
   const isUsed = f.isUsed?.booleanValue ?? false;
 
+  const validCodes = [storedCode];
+  if (f.previousCodes?.arrayValue?.values) {
+    f.previousCodes.arrayValue.values.forEach((v: any) => {
+      if (v.stringValue) validCodes.push(v.stringValue);
+    });
+  }
+
   if (storedEmail !== owner.email.toLowerCase()) {
     throw new Error('OTP was issued for a different email address.');
   }
 
   if (Date.now() > expiresAt) {
-    throw new Error('This OTP has expired (5-minute limit). Please request a fresh OTP.');
+    throw new Error('This OTP has expired (15-minute limit). Please request a fresh OTP.');
   }
 
   if (isUsed) {
     throw new Error('This OTP has already been used. Please request a fresh OTP.');
   }
 
-  if (storedCode !== cleanCode) {
+  if (!validCodes.includes(cleanCode)) {
     throw new Error('Incorrect 6-digit OTP code. Please check your email inbox.');
   }
 
