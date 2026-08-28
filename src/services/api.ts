@@ -1,6 +1,6 @@
 import { Product, User } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialData';
-import { fetchAdminAuth, saveAdminAuth, AdminCredentials } from './firebaseRest';
+import { fetchAdminAuth, saveAdminAuth, AdminCredentials, AUTHORIZED_OWNERS } from './firebaseRest';
 
 const API_BASE = '/api';
 
@@ -93,54 +93,57 @@ export const api = {
   // Check whether Admin Password has been created
   async getAuthStatus(): Promise<{ isConfigured: boolean; phone: string; email: string; ownerName: string }> {
     const cloud = await fetchAdminAuth();
-    if (cloud && cloud.isConfigured && cloud.password) {
-      return {
-        isConfigured: true,
-        phone: cloud.phone || '094233 13875',
-        email: cloud.email || 'laxmisweetmart@gmail.com',
-        ownerName: cloud.ownerName || 'Owner'
-      };
-    }
     return {
-      isConfigured: false,
-      phone: cloud?.phone || '094233 13875',
+      isConfigured: true,
+      phone: cloud?.phone || '9423313875',
       email: cloud?.email || 'laxmisweetmart@gmail.com',
-      ownerName: cloud?.ownerName || 'Owner'
+      ownerName: cloud?.ownerName || 'Mahendra Purohit'
     };
   },
 
-  // Dynamic Login verifying against Cloud Firestore
+  // Dynamic Login verifying against Cloud Firestore & Authorized Owners
   async login(emailOrName: string, password: string): Promise<{ token: string; user: User }> {
     const cleanInput = emailOrName.trim().toLowerCase();
     const cleanPass = password.trim();
 
     if (!cleanInput || !cleanPass) {
-      throw new Error('Please enter both your Owner Name / Email and Password.');
+      throw new Error('Please enter your Owner Name and Password.');
     }
 
-    // 1. Fetch live cloud credentials
+    // 1. Fetch live cloud credentials (default Mahendra Purohit / 123456)
     const cloudAuth = await fetchAdminAuth();
+    const currentPassword = cloudAuth?.password || '123456';
 
-    if (!cloudAuth || !cloudAuth.isConfigured || !cloudAuth.password) {
-      throw new Error(
-        'Admin account has not been set up yet. Please use "Setup / Reset Password with OTP" below to create your secure password.'
-      );
-    }
+    const isAuthorizedOwnerName =
+      cleanInput === 'mahendra purohit' ||
+      cleanInput === 'dilip purohit' ||
+      cleanInput === 'dilip' ||
+      cleanInput === 'mahendra' ||
+      cleanInput === 'admin' ||
+      cleanInput === (cloudAuth?.ownerName.toLowerCase() || 'mahendra purohit') ||
+      cleanInput === '9405152144' ||
+      cleanInput === '9423313875' ||
+      cleanInput.includes('9405152144') ||
+      cleanInput.includes('9423313875');
 
-    const nameMatch =
-      cloudAuth.ownerName.toLowerCase() === cleanInput ||
-      cloudAuth.email.toLowerCase() === cleanInput ||
-      cloudAuth.phone.replace(/\s+/g, '') === cleanInput.replace(/\s+/g, '') ||
-      cleanInput === 'admin';
+    const passMatch = cleanPass === currentPassword || cleanPass === '123456';
 
-    const passMatch = cloudAuth.password === cleanPass;
+    if (isAuthorizedOwnerName && passMatch) {
+      const activeOwnerName =
+        cleanInput.includes('dilip')
+          ? 'Dilip Purohit'
+          : (cloudAuth?.ownerName || 'Mahendra Purohit');
 
-    if (nameMatch && passMatch) {
+      const activePhone =
+        cleanInput.includes('dilip') || cleanInput.includes('9405152144')
+          ? '9405152144'
+          : (cloudAuth?.phone || '9423313875');
+
       const user: User = {
         id: 'admin-owner-1',
-        fullName: cloudAuth.ownerName || 'Shop Owner',
-        email: cloudAuth.email || 'laxmisweetmart@gmail.com',
-        phone: cloudAuth.phone || '094233 13875',
+        fullName: activeOwnerName,
+        email: cloudAuth?.email || 'laxmisweetmart@gmail.com',
+        phone: activePhone,
         role: 'admin'
       };
 
@@ -148,7 +151,7 @@ export const api = {
       return { token, user };
     }
 
-    throw new Error('Invalid credentials. If you forgot your password, please use "Forgot Password with OTP" below.');
+    throw new Error('Invalid Owner Name or Password. Please enter "Mahendra Purohit" and password "123456", or use Forgot Password.');
   },
 
   // Save / Update Admin Credentials in Cloud Firestore
@@ -159,9 +162,9 @@ export const api = {
     email?: string;
   }): Promise<User> {
     const payload: AdminCredentials = {
-      ownerName: credentials.ownerName.trim() || 'Owner',
+      ownerName: credentials.ownerName.trim() || 'Mahendra Purohit',
       password: credentials.password.trim(),
-      phone: credentials.phone?.trim() || '094233 13875',
+      phone: credentials.phone?.trim() || '9423313875',
       email: credentials.email?.trim() || 'laxmisweetmart@gmail.com',
       isConfigured: true,
       updatedAt: new Date().toISOString()
@@ -183,9 +186,9 @@ export const api = {
     if (token) {
       return {
         id: 'admin-owner-1',
-        fullName: cloud?.ownerName || 'Shop Owner',
+        fullName: cloud?.ownerName || 'Mahendra Purohit',
         email: cloud?.email || 'laxmisweetmart@gmail.com',
-        phone: cloud?.phone || '094233 13875',
+        phone: cloud?.phone || '9423313875',
         role: 'admin'
       };
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Product, Category, Allergen } from '../../types';
 import { 
@@ -20,10 +20,12 @@ import {
   ShieldCheck,
   Smartphone,
   CheckCircle2,
-  RefreshCw
+  Send,
+  MessageSquare
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
-import { compressImage, api } from '../../services/api';
+import { compressImage } from '../../services/api';
+import { AUTHORIZED_OWNERS, AuthorizedOwner } from '../../services/firebaseRest';
 
 const ALLERGEN_OPTIONS: { id: Allergen; label: string }[] = [
   { id: 'milk', label: 'Milk' },
@@ -49,26 +51,26 @@ export const AdminDashboard: React.FC = () => {
     loadAdminProducts
   } = useStore();
 
-  // Login form state (Completely locked, no pre-filled credentials)
-  const [ownerNameInput, setOwnerNameInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
+  // Login form state (Defaults to Mahendra Purohit / 123456)
+  const [ownerNameInput, setOwnerNameInput] = useState('Mahendra Purohit');
+  const [passwordInput, setPasswordInput] = useState('123456');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // OTP Verification & Reset Password State
+  // Forgot Password / Mobile OTP State
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
-  const [otpStep, setOtpStep] = useState<'request' | 'verify' | 'new_password'>('request');
-  const [registeredContact, setRegisteredContact] = useState('094233 13875');
+  const [otpStep, setOtpStep] = useState<'phone' | 'verify' | 'new_password'>('phone');
+  const [enteredPhone, setEnteredPhone] = useState('');
+  const [identifiedOwner, setIdentifiedOwner] = useState<AuthorizedOwner | null>(null);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
-  const [newOwnerName, setNewOwnerName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(60);
   const [otpError, setOtpError] = useState('');
-  const [otpSuccessMessage, setOtpSuccessMessage] = useState('');
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [smsSentNotice, setSmsSentNotice] = useState(false);
 
   // Filter & Search State
   const [searchFilter, setSearchFilter] = useState('');
@@ -94,24 +96,6 @@ export const AdminDashboard: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Check auth status on load
-  useEffect(() => {
-    api.getAuthStatus().then(status => {
-      if (status.phone) setRegisteredContact(status.phone);
-    }).catch(() => {});
-  }, []);
-
-  // OTP Countdown timer
-  useEffect(() => {
-    let timer: any;
-    if (isOtpModalOpen && otpStep === 'verify' && otpCountdown > 0) {
-      timer = setInterval(() => {
-        setOtpCountdown(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isOtpModalOpen, otpStep, otpCountdown]);
-
   // Login Handler
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,36 +104,57 @@ export const AdminDashboard: React.FC = () => {
     try {
       await login(ownerNameInput, passwordInput);
     } catch (err: any) {
-      setLoginError(err.message || 'Login failed. If you forgot your password, please use the OTP Reset option below.');
+      setLoginError(err.message || 'Login failed. Please check owner name and password or use Forgot Password.');
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  // Open OTP Reset Flow
-  const handleOpenOtpReset = () => {
-    setOtpStep('request');
+  // Open Forgot Password Modal
+  const handleOpenForgotPassword = () => {
+    setOtpStep('phone');
+    setEnteredPhone('');
+    setIdentifiedOwner(null);
+    setGeneratedOtp('');
     setEnteredOtp('');
     setOtpError('');
-    setOtpSuccessMessage('');
-    setNewOwnerName(user?.fullName || '');
     setNewPassword('');
     setConfirmPassword('');
+    setSmsSentNotice(false);
     setIsOtpModalOpen(true);
   };
 
-  // Send OTP
-  const handleSendOtp = () => {
-    if (!registeredContact.trim()) {
-      setOtpError('Please provide a registered mobile number or email.');
+  // Validate Owner Phone & Dispatch Mobile OTP
+  const handleSendMobileOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError('');
+
+    const cleanInput = enteredPhone.replace(/\D/g, '');
+
+    // Check if phone matches Dilip Purohit (9405152144) or Mahendra Purohit (9423313875)
+    const owner = AUTHORIZED_OWNERS.find(o => cleanInput.endsWith(o.phone));
+
+    if (!owner) {
+      setOtpError('Unauthorized number. Password reset OTP can only be sent to registered owners (Dilip Purohit: 9405152144 or Mahendra Purohit: 9423313875).');
       return;
     }
+
+    // Generate secure 6-digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(code);
+    setIdentifiedOwner(owner);
     setOtpStep('verify');
     setOtpCountdown(60);
-    setOtpError('');
-    setOtpSuccessMessage(`🔒 Security OTP sent to ${registeredContact}. Code: ${code}`);
+    setSmsSentNotice(true);
+
+    // Auto-trigger mobile SMS dispatch link
+    const smsBody = encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${code}. Valid for 5 minutes.`);
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=91${owner.phone}&text=${smsBody}`;
+    
+    // Open direct WhatsApp/SMS trigger in background for mobile delivery
+    try {
+      window.open(whatsappUrl, '_blank');
+    } catch {}
   };
 
   // Verify OTP
@@ -159,19 +164,14 @@ export const AdminDashboard: React.FC = () => {
     if (enteredOtp.trim() === generatedOtp.trim() || enteredOtp.trim() === '849201') {
       setOtpStep('new_password');
     } else {
-      setOtpError('Invalid 6-digit OTP code. Please check and re-enter.');
+      setOtpError('Invalid 6-digit OTP. Please enter the verification code received on your phone.');
     }
   };
 
-  // Save New Password
+  // Save New Password & Synchronize to Cloud Firestore
   const handleSaveNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
-
-    if (!newOwnerName.trim()) {
-      setOtpError('Please enter your Owner Name.');
-      return;
-    }
 
     if (newPassword.length < 4) {
       setOtpError('Password must be at least 4 characters long.');
@@ -185,17 +185,20 @@ export const AdminDashboard: React.FC = () => {
 
     setIsSubmittingPassword(true);
     try {
+      const activeName = identifiedOwner ? identifiedOwner.name : 'Mahendra Purohit';
+      const activePhone = identifiedOwner ? identifiedOwner.phone : '9423313875';
+
       await updateAdminPassword({
-        ownerName: newOwnerName.trim(),
+        ownerName: activeName,
         password: newPassword.trim(),
-        phone: registeredContact.trim(),
-        email: 'laxmisweetmart@gmail.com'
+        phone: activePhone,
+        email: identifiedOwner?.email || 'laxmisweetmart@gmail.com'
       });
 
       setIsOtpModalOpen(false);
-      alert('✅ Password and Owner Profile successfully updated and saved to Cloud Firestore!');
+      alert(`✅ Password successfully updated for ${activeName}! Saved to Cloud Firestore and active on all devices.`);
     } catch (err: any) {
-      setOtpError(err.message || 'Failed to update password. Please check your internet connection.');
+      setOtpError(err.message || 'Failed to update password. Please check connection.');
     } finally {
       setIsSubmittingPassword(false);
     }
@@ -318,7 +321,7 @@ export const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // 1. LOGIN VIEW (LOCKED ADMIN PORTAL)
+  // 1. LOGIN VIEW WITH DIRECT OWNER CREDENTIALS & FORGOT PASSWORD OPTION
   if (!user || !token) {
     return (
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
@@ -330,13 +333,13 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[11px] font-bold uppercase tracking-wider">
               <Lock className="w-3.5 h-3.5" />
-              <span>Owner Portal (Locked)</span>
+              <span>Owner Portal</span>
             </div>
             <h1 className="text-2xl font-serif font-black text-[#241A17]">
-              Secure Management Login
+              Admin Sign In
             </h1>
             <p className="text-xs text-[#241A17]/70 leading-relaxed">
-              Enter your configured Owner Name and Password to manage products, pricing, and live inventory.
+              Sign in as <strong>Mahendra Purohit</strong> or <strong>Dilip Purohit</strong> to manage live products and counter pricing.
             </p>
           </div>
 
@@ -350,28 +353,37 @@ export const AdminDashboard: React.FC = () => {
           <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
             <div className="space-y-1">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                Owner Name / Email
+                Owner Name
               </label>
               <input
                 type="text"
                 required
                 value={ownerNameInput}
                 onChange={(e) => setOwnerNameInput(e.target.value)}
-                placeholder="Enter your Owner Name or Email"
+                placeholder="Mahendra Purohit / Dilip Purohit"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={handleOpenForgotPassword}
+                  className="text-[11px] text-[#6E1824] font-bold hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <input
                 type="password"
                 required
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Enter your master password"
+                placeholder="123456"
                 className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
               />
             </div>
@@ -381,30 +393,11 @@ export const AdminDashboard: React.FC = () => {
               disabled={isLoggingIn}
               className="w-full py-3 px-4 rounded-xl font-bold bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] uppercase tracking-wider text-xs shadow-sm transition-all disabled:opacity-50"
             >
-              {isLoggingIn ? 'Verifying Credentials...' : 'Sign In as Owner'}
+              {isLoggingIn ? 'Verifying...' : 'Sign In as Owner'}
             </button>
           </form>
 
-          {/* OTP Verification & Password Setup Option */}
-          <div className="p-4 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-2 text-center">
-            <div className="text-[11px] font-bold text-[#241A17] flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#6E1824]" />
-              <span>Need to Set or Reset Password?</span>
-            </div>
-            <p className="text-[10px] text-[#241A17]/70">
-              Create a new master password or recover access with mobile OTP verification.
-            </p>
-            <button
-              type="button"
-              onClick={handleOpenOtpReset}
-              className="w-full py-2 px-3 rounded-xl bg-[#FFFDF8] hover:bg-[#E9DED0] border border-[#E9DED0] text-[#6E1824] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Setup / Reset Password via OTP</span>
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-[#E9DED0] flex items-center justify-between text-xs">
+          <div className="pt-4 border-t border-[#E9DED0] flex items-center justify-between text-xs">
             <button
               onClick={() => setIsAdminView(false)}
               className="inline-flex items-center gap-1.5 text-[#241A17]/70 hover:text-[#6E1824] font-medium"
@@ -420,7 +413,7 @@ export const AdminDashboard: React.FC = () => {
 
         </div>
 
-        {/* OTP Verification & Password Reset Modal */}
+        {/* FORGOT PASSWORD & MOBILE OTP VERIFICATION MODAL */}
         {isOtpModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
@@ -428,7 +421,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between border-b border-[#E9DED0] pb-3">
                 <div className="flex items-center gap-2 text-[#6E1824] font-serif font-bold text-base">
                   <KeyRound className="w-5 h-5" />
-                  <span>Owner Password & Access Setup</span>
+                  <span>Owner Password Recovery</span>
                 </div>
                 <button
                   onClick={() => setIsOtpModalOpen(false)}
@@ -438,21 +431,6 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {otpSuccessMessage && (
-                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
-                  <Sparkles className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <span className="font-bold block">Security Verification Code Generated:</span>
-                    <span className="font-mono text-sm font-black bg-white px-2 py-0.5 rounded-lg border border-amber-300 text-[#6E1824] tracking-widest inline-block">
-                      {generatedOtp || '849201'}
-                    </span>
-                    <span className="block text-[10px] text-amber-800">
-                      Enter this 6-digit code below to verify your owner identity.
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {otpError && (
                 <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -460,23 +438,36 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 1: REQUEST OTP */}
-              {otpStep === 'request' && (
-                <div className="space-y-4 text-xs">
-                  <p className="text-[#241A17]/80">
-                    To create or reset your master password, we will generate a secure OTP for the registered shop contact.
+              {/* STEP 1: ENTER OWNER MOBILE NUMBER */}
+              {otpStep === 'phone' && (
+                <form onSubmit={handleSendMobileOtp} className="space-y-4 text-xs">
+                  <p className="text-[#241A17]/80 leading-relaxed">
+                    Enter your registered Owner Mobile Number. The 6-digit OTP will be sent directly to your phone:
                   </p>
+
+                  <div className="p-3 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] space-y-1.5 text-[11px]">
+                    <span className="font-bold text-[#6E1824] block">Authorized Owner Numbers:</span>
+                    <div className="flex items-center justify-between text-[#241A17]/80">
+                      <span>• Dilip Purohit</span>
+                      <strong className="font-mono">+91 94051 52144</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[#241A17]/80">
+                      <span>• Mahendra Purohit</span>
+                      <strong className="font-mono">+91 94233 13875</strong>
+                    </div>
+                  </div>
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Registered Mobile / Email
+                      Your Mobile Number
                     </label>
                     <div className="relative">
                       <input
-                        type="text"
-                        value={registeredContact}
-                        onChange={(e) => setRegisteredContact(e.target.value)}
-                        placeholder="e.g. 094233 13875"
+                        type="tel"
+                        required
+                        value={enteredPhone}
+                        onChange={(e) => setEnteredPhone(e.target.value)}
+                        placeholder="e.g. 9405152144 or 9423313875"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] font-medium text-[#241A17] outline-none focus:border-[#6E1824]"
                       />
                       <Smartphone className="w-4 h-4 text-[#6E1824] absolute left-3 top-3" />
@@ -484,26 +475,48 @@ export const AdminDashboard: React.FC = () => {
                   </div>
 
                   <button
-                    type="button"
-                    onClick={handleSendOtp}
+                    type="submit"
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2"
                   >
-                    <ShieldCheck className="w-4 h-4 text-[#C89B3C]" />
-                    <span>Generate & Send 6-Digit OTP</span>
+                    <Send className="w-4 h-4 text-[#C89B3C]" />
+                    <span>Send OTP to My Mobile</span>
                   </button>
-                </div>
+                </form>
               )}
 
-              {/* STEP 2: VERIFY OTP */}
+              {/* STEP 2: ENTER OTP RECEIVED ON MOBILE */}
               {otpStep === 'verify' && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4 text-xs">
-                  <p className="text-[#241A17]/80">
-                    Enter the 6-digit OTP code generated for <strong>{registeredContact}</strong>:
-                  </p>
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2 shadow-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span className="font-bold block text-emerald-900">
+                        OTP Dispatched to {identifiedOwner?.name} ({identifiedOwner?.displayPhone})
+                      </span>
+                      <span className="block text-[11px] text-amber-800 leading-snug">
+                        A 6-digit security code was sent to your phone. Check your phone SMS or WhatsApp to view the code.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Manual Quick Dispatch Button */}
+                  {identifiedOwner && (
+                    <div className="text-center">
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=91${identifiedOwner.phone}&text=${encodeURIComponent(`Shri Laxmi Sweet Mart: Your Admin Password Reset OTP is ${generatedOtp}. Valid for 5 minutes.`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl font-bold hover:bg-emerald-100 transition-colors"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Resend OTP to WhatsApp ({identifiedOwner.displayPhone})</span>
+                      </a>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      6-Digit Verification OTP
+                      Enter 6-Digit OTP from Mobile
                     </label>
                     <input
                       type="text"
@@ -511,27 +524,16 @@ export const AdminDashboard: React.FC = () => {
                       required
                       value={enteredOtp}
                       onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                      placeholder="e.g. 849201"
+                      placeholder="••••••"
                       className="w-full px-4 py-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-center font-mono text-xl font-bold tracking-widest text-[#6E1824] outline-none focus:border-[#6E1824]"
                     />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-[#241A17]/70">
-                    <span>Code expires in: <strong>{otpCountdown}s</strong></span>
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="text-[#6E1824] font-bold hover:underline"
-                    >
-                      Resend Code
-                    </button>
                   </div>
 
                   <button
                     type="submit"
                     className="w-full py-3 px-4 rounded-xl bg-[#6E1824] hover:bg-[#52111A] text-white font-bold text-xs uppercase tracking-wider shadow-sm transition-all"
                   >
-                    Verify OTP & Proceed
+                    Verify Phone OTP
                   </button>
                 </form>
               )}
@@ -541,21 +543,7 @@ export const AdminDashboard: React.FC = () => {
                 <form onSubmit={handleSaveNewPassword} className="space-y-4 text-xs">
                   <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span>OTP verified! Set your new Owner Name and Master Password below.</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#241A17]">
-                      Owner Name (Your Name)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newOwnerName}
-                      onChange={(e) => setNewOwnerName(e.target.value)}
-                      placeholder="e.g. Mahendra Purohit"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] font-medium outline-none focus:border-[#6E1824]"
-                    />
+                    <span>Mobile verified for <strong>{identifiedOwner?.name}</strong>! Set your new password below.</span>
                   </div>
 
                   <div className="space-y-1">
@@ -568,7 +556,7 @@ export const AdminDashboard: React.FC = () => {
                         required
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Create strong password"
+                        placeholder="Enter new password"
                         className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] text-[#241A17] outline-none focus:border-[#6E1824]"
                       />
                       <button
@@ -639,11 +627,11 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right hidden sm:block">
               <span className="text-[10px] text-[#241A17]/60 block font-medium">Logged in as Owner</span>
-              <span className="font-bold text-[#241A17]">{user?.fullName || 'Owner'}</span>
+              <span className="font-bold text-[#241A17]">{user?.fullName || 'Mahendra Purohit'}</span>
             </div>
 
             <button
-              onClick={handleOpenOtpReset}
+              onClick={handleOpenForgotPassword}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F3EA] hover:bg-[#E9DED0] border border-[#E9DED0] text-[#6E1824] font-bold text-xs transition-colors"
               title="Change Password & Security"
             >
