@@ -61,11 +61,7 @@ export const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isAdminView) {
-      document.title = '🔒 Owner Portal | Shri Laxmi Sweet Mart™';
-    } else {
-      document.title = 'श्री Laxmi Sweet Mart™ | Mapusa, Goa · Authentic Sweets & Farsan (Estd. 1985)';
-    }
+    document.title = 'Laxmi Sweet Mart';
   }, [isAdminView]);
 
   return (
