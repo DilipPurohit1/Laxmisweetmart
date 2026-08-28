@@ -743,10 +743,10 @@ export const AdminDashboard: React.FC = () => {
 
           <button
             onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 py-3 px-5 rounded-2xl bg-[#6E1824] hover:bg-[#52111A] text-[#FFFDF8] font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex-shrink-0"
+            className="inline-flex items-center gap-2 py-3 px-5 rounded-2xl bg-[#6E1824] hover:bg-[#8B1E2E] text-[#FFFDF8] font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex-shrink-0"
           >
-            <Plus className="w-4 h-4 text-[#C89B3C]" />
-            <span>+ Add New Sweet / Item</span>
+            <Plus className="w-4 h-4 text-[#F0C05A]" />
+            <span>Add New Sweet / Item</span>
           </button>
         </div>
 
@@ -838,14 +838,14 @@ export const AdminDashboard: React.FC = () => {
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => toggleFestive(product.id, !product.isFestiveSpecial)}
-                          className={`p-1.5 rounded-xl border transition-colors ${
+                          className={`p-2 rounded-xl border transition-all ${
                             product.isFestiveSpecial
-                              ? 'bg-amber-100 border-amber-300 text-amber-800'
-                              : 'bg-[#F8F3EA] border-[#E9DED0] text-[#241A17]/40 hover:text-[#241A17]'
+                              ? 'bg-amber-400 dark:bg-amber-400 text-stone-950 font-bold border-amber-500 shadow-xs ring-2 ring-amber-400/30'
+                              : 'bg-[#F8F3EA] dark:bg-[#2A201E] border-[#E9DED0] dark:border-[#4D3A37] text-stone-400 dark:text-[#E2DACF] hover:text-[#241A17] dark:hover:text-amber-300'
                           }`}
-                          title="Toggle Festive Special Badge"
+                          title={product.isFestiveSpecial ? 'Active Festive Special (Click to Disable)' : 'Inactive (Click to make Festive Special)'}
                         >
-                          <Sparkles className="w-4 h-4" />
+                          <Sparkles className={`w-4 h-4 ${product.isFestiveSpecial ? 'text-stone-950' : 'text-stone-400 dark:text-[#E2DACF]'}`} />
                         </button>
                       </td>
 
@@ -853,12 +853,12 @@ export const AdminDashboard: React.FC = () => {
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => toggleVisibility(product.id, !product.isVisible)}
-                          className={`p-1.5 rounded-xl border transition-colors ${
+                          className={`p-2 rounded-xl border transition-all ${
                             product.isVisible
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                              : 'bg-stone-100 border-stone-300 text-stone-400'
+                              ? 'bg-emerald-50 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/30'
+                              : 'bg-rose-50 dark:bg-rose-500/20 border-rose-300 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/30'
                           }`}
-                          title={product.isVisible ? 'Visible on Counter' : 'Hidden from Counter'}
+                          title={product.isVisible ? 'Visible on Counter (Click to Hide)' : 'Hidden from Counter (Click to Show)'}
                         >
                           {product.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
