@@ -28,6 +28,16 @@ export const AUTHORIZED_OWNERS: AuthorizedOwner[] = [
   }
 ];
 
+export interface DualOwnerCredentials {
+  dilipPassword: string;
+  dilipEmail: string;
+  dilipPhone: string;
+  mahendraPassword: string;
+  mahendraEmail: string;
+  mahendraPhone: string;
+  updatedAt: string;
+}
+
 export interface AdminCredentials {
   ownerName: string;
   password: string;
@@ -38,71 +48,66 @@ export interface AdminCredentials {
 }
 
 /**
- * Fetch Admin Credentials from Cloud Firestore
+ * Fetch Dual-Owner Credentials from Cloud Firestore in real time (cache-busting)
  */
-export async function fetchAdminAuth(): Promise<AdminCredentials | null> {
+export async function fetchDualOwnerAuth(): Promise<DualOwnerCredentials> {
   try {
-    const res = await fetch(FIRESTORE_AUTH_URL, {
+    const res = await fetch(`${FIRESTORE_AUTH_URL}?t=${Date.now()}`, {
       method: 'GET',
-      headers: { Accept: 'application/json' }
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
     });
 
-    if (!res.ok) {
-      return {
-        ownerName: 'Mahendra Purohit',
-        password: '123456',
-        phone: '9423313875',
-        email: 'laxmisweetmart@gmail.com',
-        isConfigured: true,
-        updatedAt: new Date().toISOString()
-      };
+    if (res.ok) {
+      const doc = await res.json();
+      if (doc && doc.fields) {
+        const f = doc.fields;
+        return {
+          dilipPassword: f.dilip_password?.stringValue || '123456',
+          dilipEmail: f.dilip_email?.stringValue || 'imdilippurohit@gmail.com',
+          dilipPhone: f.dilip_phone?.stringValue || '9405152144',
+          mahendraPassword: f.mahendra_password?.stringValue || f.password?.stringValue || '123456',
+          mahendraEmail: f.mahendra_email?.stringValue || 'laxmisweetmart@gmail.com',
+          mahendraPhone: f.mahendra_phone?.stringValue || '9423313875',
+          updatedAt: f.updatedAt?.stringValue || new Date().toISOString()
+        };
+      }
     }
-
-    const doc = await res.json();
-    if (!doc || !doc.fields) {
-      return {
-        ownerName: 'Mahendra Purohit',
-        password: '123456',
-        phone: '9423313875',
-        email: 'laxmisweetmart@gmail.com',
-        isConfigured: true,
-        updatedAt: new Date().toISOString()
-      };
-    }
-    const f = doc.fields;
-
-    return {
-      ownerName: f.ownerName?.stringValue || 'Mahendra Purohit',
-      password: f.password?.stringValue || '123456',
-      phone: f.phone?.stringValue || '9423313875',
-      email: f.email?.stringValue || 'laxmisweetmart@gmail.com',
-      isConfigured: f.isConfigured?.booleanValue ?? true,
-      updatedAt: f.updatedAt?.stringValue || new Date().toISOString()
-    };
   } catch (e) {
-    console.warn('Could not fetch admin auth from cloud:', e);
-    return {
-      ownerName: 'Mahendra Purohit',
-      password: '123456',
-      phone: '9423313875',
-      email: 'laxmisweetmart@gmail.com',
-      isConfigured: true,
-      updatedAt: new Date().toISOString()
-    };
+    console.warn('Could not fetch dual owner auth:', e);
   }
+
+  return {
+    dilipPassword: '123456',
+    dilipEmail: 'imdilippurohit@gmail.com',
+    dilipPhone: '9405152144',
+    mahendraPassword: '123456',
+    mahendraEmail: 'laxmisweetmart@gmail.com',
+    mahendraPhone: '9423313875',
+    updatedAt: new Date().toISOString()
+  };
 }
 
 /**
- * Save / Update Admin Credentials in Cloud Firestore
+ * Save / Update an Individual Owner's Password in Cloud Firestore
+ * Only resets the password for that specific owner, leaving the other owner's password untouched!
  */
-export async function saveAdminAuth(credentials: AdminCredentials): Promise<void> {
+export async function saveIndividualOwnerAuth(ownerKey: 'dilip' | 'mahendra', newPassword: string): Promise<void> {
+  const current = await fetchDualOwnerAuth();
+
+  const updatedDilipPass = ownerKey === 'dilip' ? newPassword.trim() : current.dilipPassword;
+  const updatedMahendraPass = ownerKey === 'mahendra' ? newPassword.trim() : current.mahendraPassword;
+
   const payload = {
     fields: {
-      ownerName: { stringValue: credentials.ownerName.trim() },
-      password: { stringValue: credentials.password.trim() },
-      phone: { stringValue: credentials.phone.trim() },
-      email: { stringValue: credentials.email.trim() },
-      isConfigured: { booleanValue: true },
+      dilip_password: { stringValue: updatedDilipPass },
+      dilip_email: { stringValue: 'imdilippurohit@gmail.com' },
+      dilip_phone: { stringValue: '9405152144' },
+      mahendra_password: { stringValue: updatedMahendraPass },
+      mahendra_email: { stringValue: 'laxmisweetmart@gmail.com' },
+      mahendra_phone: { stringValue: '9423313875' },
+      password: { stringValue: ownerKey === 'dilip' ? updatedDilipPass : updatedMahendraPass },
+      ownerName: { stringValue: ownerKey === 'dilip' ? 'Dilip Purohit' : 'Mahendra Purohit' },
       updatedAt: { stringValue: new Date().toISOString() }
     }
   };
@@ -118,8 +123,31 @@ export async function saveAdminAuth(credentials: AdminCredentials): Promise<void
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Failed to save admin credentials in cloud: ${err}`);
+    throw new Error(`Failed to save owner credentials in cloud: ${err}`);
   }
+}
+
+/**
+ * Fetch Admin Credentials (legacy helper)
+ */
+export async function fetchAdminAuth(): Promise<AdminCredentials | null> {
+  const dual = await fetchDualOwnerAuth();
+  return {
+    ownerName: 'Mahendra Purohit',
+    password: dual.mahendraPassword,
+    phone: dual.mahendraPhone,
+    email: dual.mahendraEmail,
+    isConfigured: true,
+    updatedAt: dual.updatedAt
+  };
+}
+
+/**
+ * Save Admin Credentials (legacy helper)
+ */
+export async function saveAdminAuth(credentials: AdminCredentials): Promise<void> {
+  const isDilip = credentials.ownerName.toLowerCase().includes('dilip');
+  await saveIndividualOwnerAuth(isDilip ? 'dilip' : 'mahendra', credentials.password);
 }
 
 /**
