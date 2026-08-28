@@ -88,6 +88,9 @@ interface StoreContextType {
   toggleVisibility: (id: string, isVisible: boolean) => Promise<void>;
   toggleFestive: (id: string, isFestive: boolean) => Promise<void>;
   syncNow: () => Promise<void>;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -123,6 +126,37 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAdminView, setIsAdminView] = useState<boolean>(false);
+
+  // Theme State (Dark / Light mode)
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('slsm_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch {}
+    return 'light';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('slsm_theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+  };
 
   // Auth State
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('slsm_token'));
@@ -389,7 +423,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         deleteProduct,
         toggleVisibility,
         toggleFestive,
-        syncNow
+        syncNow,
+        theme,
+        toggleTheme,
+        setTheme
       }}
     >
       {children}

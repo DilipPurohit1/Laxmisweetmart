@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --bg-ivory: #F8F3EA;
@@ -10,10 +12,26 @@
     --border-linen: #E9DED0;
   }
 
+  .dark {
+    --bg-ivory: #141010;
+    --bg-cream: #1C1615;
+    --brand-maroon: #9E2A3B;
+    --brand-gold: #D4AF37;
+    --text-charcoal: #F5EFEB;
+    --border-linen: #382B29;
+    color-scheme: dark;
+  }
+
   body {
     background-color: var(--bg-ivory);
     color: var(--text-charcoal);
     font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  .dark body {
+    background-color: #141010;
+    color: #F5EFEB;
   }
 
   h1, h2, h3, .font-serif {
@@ -27,6 +45,39 @@
   .font-devanagari {
     font-family: 'Rozha One', serif;
   }
+}
+
+/* Global Dark Mode Overrides for warm heritage styling */
+.dark .bg-\[\#FFFDF8\] {
+  background-color: #1C1615 !important;
+}
+
+.dark .bg-\[\#F8F3EA\] {
+  background-color: #141010 !important;
+}
+
+.dark .border-\[\#E9DED0\] {
+  border-color: #382B29 !important;
+}
+
+.dark .text-\[\#241A17\] {
+  color: #F5EFEB !important;
+}
+
+.dark .text-\[\#241A17\]\/80,
+.dark .text-\[\#241A17\]\/75,
+.dark .text-\[\#241A17\]\/70 {
+  color: #D1C7BD !important;
+}
+
+.dark .text-\[\#241A17\]\/60 {
+  color: #A89F95 !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  color: #F5EFEB !important;
 }
 
 /* ========================================================================= */

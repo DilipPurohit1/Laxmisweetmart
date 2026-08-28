@@ -22,7 +22,9 @@ import {
   CheckCircle2,
   Send,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ShopBrandName } from '../ShopBrandName';
 import { compressImage } from '../../services/api';
@@ -50,7 +52,9 @@ export const AdminDashboard: React.FC = () => {
     deleteProduct,
     toggleVisibility,
     toggleFestive,
-    loadAdminProducts
+    loadAdminProducts,
+    theme,
+    toggleTheme
   } = useStore();
 
   // Login form state (Empty by default for user entry)
@@ -353,6 +357,29 @@ export const AdminDashboard: React.FC = () => {
       <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
         <div className="max-w-md w-full bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl p-8 shadow-xl space-y-6 text-left">
           
+          <div className="flex items-center justify-between pb-2">
+            <button
+              onClick={() => setIsAdminView(false)}
+              className="inline-flex items-center gap-1.5 text-xs text-[#241A17]/70 hover:text-[#6E1824] font-medium"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-1.5 rounded-xl text-[#241A17] hover:bg-[#F8F3EA] border border-[#E9DED0] transition-colors shadow-xs"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-[#C89B3C]" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#6E1824]" />
+              )}
+            </button>
+          </div>
+
           <div className="text-center space-y-2">
             <div className="inline-block p-3 bg-[#F8F3EA] rounded-2xl border border-[#E9DED0] mb-1">
               <ShopBrandName size="sm" />
@@ -661,6 +688,19 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-[10px] text-[#241A17]/60 block font-medium">Logged in as Owner</span>
               <span className="font-bold text-[#241A17]">{user?.fullName || 'Owner'}</span>
             </div>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-1.5 sm:p-2 rounded-xl text-[#241A17] hover:bg-[#F8F3EA] border border-[#E9DED0] transition-colors shadow-xs"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-[#C89B3C]" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#6E1824]" />
+              )}
+            </button>
 
             <button
               onClick={handleOpenForgotPassword}
