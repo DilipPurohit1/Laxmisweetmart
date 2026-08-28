@@ -51,12 +51,14 @@ function patchFirestore(docData) {
 
 function sendFormSubmitEmail(targetEmail, otpCode, ownerName) {
   return new Promise((resolve) => {
+    const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
     const postData = JSON.stringify({
-      _subject: `Shri Laxmi Sweet Mart - Admin OTP Verification: ${otpCode}`,
+      _subject: `Shri Laxmi Sweet Mart - OTP: ${otpCode} [${istTime}]`,
       name: 'Shri Laxmi Sweet Mart Security',
       owner_name: ownerName,
       otp_code: otpCode,
-      message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${otpCode}. This code is valid for 5 minutes. Do not share with anyone.`,
+      dispatched_at: istTime,
+      message: `Your 6-digit OTP for Shri Laxmi Sweet Mart Admin Password Reset is: ${otpCode}. Valid for 10 minutes.`,
       _template: 'table',
       _captcha: 'false'
     });
@@ -132,13 +134,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Generate new 6-digit OTP code
+    // Generate fresh new 6-digit OTP code on every request/resend
     const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
     validCodes.push(newOtpCode);
-    validCodes = Array.from(new Set(validCodes)); // unique
+    validCodes = Array.from(new Set(validCodes)); // deduplicate
 
-    // 5-minute validity window
-    const expiresAt = Date.now() + 5 * 60 * 1000;
+    // 10-minute validity window
+    const expiresAt = Date.now() + 10 * 60 * 1000;
 
     // 1. Save to Cloud Firestore
     const firestorePayload = {
@@ -157,7 +159,7 @@ export default async function handler(req, res) {
       }
     };
 
-    // Parallel firestore save & email dispatch
+    // Parallel firestore save & fresh email dispatch
     await Promise.all([
       patchFirestore(firestorePayload),
       sendFormSubmitEmail(owner.email, newOtpCode, owner.name)
@@ -168,7 +170,7 @@ export default async function handler(req, res) {
       ownerName: owner.name,
       email: owner.email,
       expiresAt,
-      message: `6-digit OTP has been sent to your email. Valid for 5 minutes.`
+      message: `Fresh 6-digit OTP has been sent to your email. Valid for 10 minutes.`
     });
   } catch (error) {
     console.error('Send OTP Error:', error);

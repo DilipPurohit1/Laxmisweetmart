@@ -20,7 +20,7 @@ function getJson(url) {
           resolve({ status: res.statusCode, data: null });
         }
       });
-    }).on('error', reject => resolve({ status: 500, data: null }));
+    }).on('error', () => resolve({ status: 500, data: null }));
   });
 }
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
   try {
     const { email, otp } = req.body || {};
     if (!email || !otp) {
-      return res.status(400).json({ error: 'Both email and 6-digit OTP are required.' });
+      return res.status(400).json({ error: 'Both email and OTP code are required.' });
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
@@ -79,14 +79,10 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized email address.' });
     }
 
-    if (cleanOtp.length !== 6) {
-      return res.status(400).json({ error: 'Please enter the 6-digit OTP code received in your email.' });
-    }
-
     // Read active OTP from Cloud Firestore
     const { status, data } = await getJson(FIRESTORE_OTP_URL);
     if (status !== 200 || !data || !data.fields) {
-      return res.status(400).json({ error: 'No active OTP found. Please request a new code.' });
+      return res.status(400).json({ error: 'No active OTP found. Please request a fresh OTP.' });
     }
 
     const f = data.fields;
@@ -109,19 +105,19 @@ export default async function handler(req, res) {
 
     if (Date.now() > expiresAt) {
       return res.status(400).json({
-        error: 'This OTP has expired (5-minute limit). Please request a fresh OTP.'
+        error: 'This OTP has expired. Please request a fresh OTP.'
       });
     }
 
     if (isUsed) {
       return res.status(400).json({
-        error: 'This OTP has already been used. Please request a new OTP.'
+        error: 'This OTP has already been used. Please request a fresh OTP.'
       });
     }
 
     if (!validCodes.includes(cleanOtp)) {
       return res.status(400).json({
-        error: 'Incorrect OTP code. Please check the 6-digit code received in your email inbox.'
+        error: 'Incorrect OTP code. Please check the latest code received in your email inbox.'
       });
     }
 
