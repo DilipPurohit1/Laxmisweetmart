@@ -1,7 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 
+export type FestivalCanvasType = 
+  | 'diwali' 
+  | 'ganesh' 
+  | 'holi' 
+  | 'janmashtami' 
+  | 'independence' 
+  | 'navratri' 
+  | 'rakhi'
+  | 'makar_sankranti'
+  | 'maha_shivratri'
+  | 'gudi_padwa'
+  | 'goan_festivals';
+
 interface FestiveCanvasProps {
-  festivalType: 'diwali' | 'ganesh' | 'holi' | 'janmashtami' | 'independence' | 'navratri' | 'rakhi';
+  festivalType: FestivalCanvasType;
 }
 
 export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) => {
@@ -63,16 +76,15 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
           this.x = Math.random() * width;
           this.y = -20 - Math.random() * 50;
           this.vx = (Math.random() - 0.5) * 0.6;
-          this.vy = 0.45 + Math.random() * 0.55; // Slower, gentle float
+          this.vy = 0.45 + Math.random() * 0.55;
           this.size = 6 + Math.random() * 6;
-          this.vRot = (Math.random() - 0.5) * 0.02; // Slow natural spin
+          this.vRot = (Math.random() - 0.5) * 0.02;
           this.maxLife = 140 + Math.random() * 80;
           const petalColors = ['#F59E0B', '#F97316', '#EAB308', '#EA580C'];
           this.color = petalColors[Math.floor(Math.random() * petalColors.length)];
           this.alpha = 0.75 + Math.random() * 0.25;
         } else if (festivalType === 'holi') {
           this.type = 'powder';
-          // Burst from clusters
           this.x = (width * 0.2) + Math.random() * (width * 0.6);
           this.y = (height * 0.3) + Math.random() * (height * 0.4);
           const angle = Math.random() * Math.PI * 2;
@@ -97,9 +109,9 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
           this.x = Math.random() * width;
           this.y = -20 - Math.random() * 40;
           this.vx = (Math.random() - 0.5) * 0.8;
-          this.vy = 0.5 + Math.random() * 0.65; // Slower fluttering drift
+          this.vy = 0.5 + Math.random() * 0.65;
           this.size = 4 + Math.random() * 5;
-          this.vRot = (Math.random() - 0.5) * 0.025; // Gentle rotation
+          this.vRot = (Math.random() - 0.5) * 0.025;
           this.maxLife = 140 + Math.random() * 80;
           const triColors = ['#FF9933', '#FFFFFF', '#138808'];
           this.color = triColors[Math.floor(Math.random() * triColors.length)];
@@ -113,6 +125,44 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
           this.size = 2 + Math.random() * 4;
           this.color = Math.random() > 0.5 ? '#FBBF24' : '#EF4444';
           this.alpha = 0.9;
+        } else if (festivalType === 'makar_sankranti') {
+          this.type = 'kite_spark';
+          this.x = Math.random() * width;
+          this.y = height + Math.random() * 20;
+          this.vx = 0.8 + Math.random() * 1.2;
+          this.vy = -(1.0 + Math.random() * 1.8);
+          this.size = 3 + Math.random() * 4;
+          const kiteColors = ['#F59E0B', '#EF4444', '#10B981', '#FBBF24'];
+          this.color = kiteColors[Math.floor(Math.random() * kiteColors.length)];
+          this.alpha = 0.85;
+        } else if (festivalType === 'maha_shivratri') {
+          this.type = 'sacred_glow';
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = (Math.random() - 0.5) * 0.4;
+          this.vy = -(0.5 + Math.random() * 0.8);
+          this.size = 2.5 + Math.random() * 3.5;
+          this.color = Math.random() > 0.5 ? '#E0E7FF' : '#FDE047';
+          this.alpha = 0.8;
+        } else if (festivalType === 'gudi_padwa') {
+          this.type = 'petal';
+          this.x = Math.random() * width;
+          this.y = -20 - Math.random() * 50;
+          this.vx = (Math.random() - 0.5) * 0.7;
+          this.vy = 0.5 + Math.random() * 0.6;
+          this.size = 5 + Math.random() * 5;
+          this.color = Math.random() > 0.5 ? '#FBBF24' : '#84CC16';
+          this.alpha = 0.85;
+        } else if (festivalType === 'goan_festivals') {
+          this.type = 'goan_bloom';
+          this.x = Math.random() * width;
+          this.y = height + Math.random() * 20;
+          this.vx = (Math.random() - 0.5) * 0.9;
+          this.vy = -(0.8 + Math.random() * 1.5);
+          this.size = 3 + Math.random() * 4;
+          const goanColors = ['#10B981', '#F59E0B', '#06B6D4', '#EC4899'];
+          this.color = goanColors[Math.floor(Math.random() * goanColors.length)];
+          this.alpha = 0.85;
         } else {
           // Rakhi
           this.type = 'silk';
@@ -132,7 +182,7 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
         this.y += this.vy;
         this.rotation += this.vRot;
 
-        if (this.type === 'spark' || this.type === 'silk') {
+        if (this.type === 'spark' || this.type === 'silk' || this.type === 'sacred_glow' || this.type === 'kite_spark' || this.type === 'goan_bloom') {
           this.vx += (Math.random() - 0.5) * 0.05;
           this.alpha = Math.max(0, 1 - this.y / height);
         } else if (this.type === 'petal' || this.type === 'tricolor') {
@@ -173,14 +223,13 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
           // Rectangular confetti ribbon
           c.fillStyle = this.color;
           c.fillRect(-this.size, -this.size * 0.4, this.size * 2, this.size * 0.8);
-        } else if (this.type === 'powder') {
-          // Soft circular powder puff
+        } else if (this.type === 'powder' || this.type === 'sacred_glow' || this.type === 'goan_bloom') {
+          // Soft circular powder puff / halo
           c.fillStyle = this.color;
           c.beginPath();
           c.arc(0, 0, this.size, 0, Math.PI * 2);
           c.fill();
         } else if (this.type === 'butter') {
-          // Teardrop butter drop
           c.fillStyle = this.color;
           c.beginPath();
           c.arc(0, 0, this.size, 0, Math.PI * 2);
@@ -197,26 +246,24 @@ export const FestiveCanvas: React.FC<FestiveCanvasProps> = ({ festivalType }) =>
       }
     }
 
-    const particleCount = festivalType === 'ganesh' || festivalType === 'holi' ? 45 : 35;
+    // Spawn high density 60fps particles
+    const particleCount = width < 640 ? 32 : 55;
     const particles: Particle[] = Array.from({ length: particleCount }, () => new Particle());
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
-
-      // Render & update all particles
       for (let i = 0; i < particles.length; i++) {
         particles[i].update();
         particles[i].draw(ctx);
       }
-
       animationFrameId = requestAnimationFrame(render);
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [festivalType]);
 

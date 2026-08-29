@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { FestivalTag } from '../types';
 import { Sparkles, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { FestiveCanvas } from './FestiveCanvas';
+import { FestiveCanvas, FestivalCanvasType } from './FestiveCanvas';
 
 interface FestivalConfig {
   tag: FestivalTag;
@@ -12,7 +12,7 @@ interface FestivalConfig {
   ambientGlow: string;
   tagline: string;
   signatureId: string;
-  type: 'diwali' | 'ganesh' | 'holi' | 'janmashtami' | 'independence' | 'navratri' | 'rakhi';
+  type: FestivalCanvasType;
 }
 
 const FESTIVAL_CONFIGS: FestivalConfig[] = [
@@ -52,9 +52,59 @@ const FESTIVAL_CONFIGS: FestivalConfig[] = [
     badge: 'Dahi Handi Special',
     themeBg: '#0F2042',
     ambientGlow: 'from-sky-500/25 via-blue-900/20 to-transparent',
-    tagline: 'Special kesar khoya pedas and fresh sweet makhan delicacies.',
+    tagline: 'Special kesar khoya pedas and fresh sweet makhan delicacies prepared for Kanha.',
     signatureId: 'khoya-mawa-peda',
     type: 'janmashtami'
+  },
+  {
+    tag: 'Makar Sankranti',
+    name: 'Makar Sankranti & Pongal',
+    badge: 'Uttarayan Special',
+    themeBg: '#2A1608',
+    ambientGlow: 'from-amber-500/25 via-orange-900/20 to-transparent',
+    tagline: 'Traditional til-gul laddoos, crisp peanut chikki, and sweet festive celebration treats.',
+    signatureId: 'motichoor-laddoo',
+    type: 'makar_sankranti'
+  },
+  {
+    tag: 'Maha Shivratri',
+    name: 'Maha Shivratri',
+    badge: 'Bholenath Bhog',
+    themeBg: '#1B0B2E',
+    ambientGlow: 'from-indigo-500/25 via-purple-900/20 to-transparent',
+    tagline: 'Pure kesar khoya pedas, badam milk, and authentic phalahari offerings.',
+    signatureId: 'angoori-ras-malai',
+    type: 'maha_shivratri'
+  },
+  {
+    tag: 'Gudi Padwa',
+    name: 'Gudi Padwa & Ugadi',
+    badge: 'Nav Varsh Special',
+    themeBg: '#3D1B04',
+    ambientGlow: 'from-yellow-500/25 via-amber-900/20 to-transparent',
+    tagline: 'Authentic Maharashtrian & Goan New Year puran poli, saffron shrikhand, and mango barfi.',
+    signatureId: 'khoya-mawa-peda',
+    type: 'gudi_padwa'
+  },
+  {
+    tag: 'Raksha Bandhan',
+    name: 'Raksha Bandhan',
+    badge: 'Sibling Celebration',
+    themeBg: '#3E0E22',
+    ambientGlow: 'from-rose-500/25 via-pink-900/20 to-transparent',
+    tagline: 'Cherished sweet hampers, kaju pista rolls, and melt-in-mouth milk cake.',
+    signatureId: 'kaju-pista-roll',
+    type: 'rakhi'
+  },
+  {
+    tag: 'Navratri',
+    name: 'Navratri & Dussehra',
+    badge: 'Dandiya Raas Special',
+    themeBg: '#421208',
+    ambientGlow: 'from-amber-500/25 via-rose-900/20 to-transparent',
+    tagline: 'Crisp golden kesar jalebi, spiced fafda, and celebratory festive assortments.',
+    signatureId: 'crispy-kesar-jalebi',
+    type: 'navratri'
   },
   {
     tag: 'Independence Day',
@@ -67,24 +117,14 @@ const FESTIVAL_CONFIGS: FestivalConfig[] = [
     type: 'independence'
   },
   {
-    tag: 'Navratri',
-    name: 'Navratri & Dussehra',
-    badge: 'Dandiya Raas Special',
-    themeBg: '#421208',
-    ambientGlow: 'from-amber-500/25 via-rose-900/20 to-transparent',
-    tagline: 'Crisp golden kesar jalebi and celebratory festive assortments.',
-    signatureId: 'crispy-kesar-jalebi',
-    type: 'navratri'
-  },
-  {
-    tag: 'Raksha Bandhan',
-    name: 'Raksha Bandhan',
-    badge: 'Sibling Celebration',
-    themeBg: '#3E0E22',
-    ambientGlow: 'from-rose-500/25 via-pink-900/20 to-transparent',
-    tagline: 'Cherished sweet hampers, kaju pista rolls, and melt-in-mouth milk cake.',
-    signatureId: 'kaju-pista-roll',
-    type: 'rakhi'
+    tag: 'Goan Festivals',
+    name: 'Goan Feasts & Sao Joao',
+    badge: 'Goan Heritage Special',
+    themeBg: '#0A2624',
+    ambientGlow: 'from-emerald-500/25 via-teal-900/20 to-transparent',
+    tagline: 'Signature Goan savory farsan, cashew special sweets, and authentic local tea-time delicacies.',
+    signatureId: 'special-sweet',
+    type: 'goan_festivals'
   }
 ];
 
@@ -122,7 +162,7 @@ export const FestiveSpecials: React.FC = () => {
   return (
     <section
       id="festive"
-      className="relative py-6 sm:py-14 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none"
+      className="relative py-6 sm:py-12 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none"
       style={{
         backgroundColor: activeFestival.themeBg
       }}
@@ -134,151 +174,12 @@ export const FestiveSpecials: React.FC = () => {
       <FestiveCanvas festivalType={activeFestival.type} />
 
       {/* ========================================================================= */}
-      {/* COMPACT & ELEGANT SVG ELEMENTS (DESKTOP & TABLET SHOWN CLEANLY) */}
-      {/* ========================================================================= */}
-
-      {/* 1. DIWALI: Miniature Flickering Clay Diyas */}
-      {activeFestival.type === 'diwali' && (
-        <div className="hidden sm:flex absolute bottom-2 inset-x-0 justify-around px-6 opacity-75 pointer-events-none z-1">
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <svg viewBox="0 0 16 22" className="w-3.5 h-5 anim-diya-flame" style={{ animationDelay: `${i * 0.35}s` }}>
-                <path d="M8 0 C10 7 14 12 14 16 C14 20 11 22 8 22 C5 22 2 20 2 16 C2 12 6 7 8 0 Z" fill="url(#diyaGradMini)" />
-                <defs>
-                  <linearGradient id="diyaGradMini" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FEF08A" />
-                    <stop offset="50%" stopColor="#FBBF24" />
-                    <stop offset="100%" stopColor="#DC2626" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <svg viewBox="0 0 32 14" className="w-7 h-3 -mt-0.5">
-                <ellipse cx="16" cy="4" rx="15" ry="3.5" fill="#B45309" stroke="#F59E0B" strokeWidth="0.8" />
-                <path d="M2 4 Q16 16 30 4 Z" fill="#78350F" stroke="#F59E0B" strokeWidth="0.6" />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 2. GANESH CHATURTHI: Compact Golden Modaks */}
-      {activeFestival.type === 'ganesh' && (
-        <div className="hidden sm:flex absolute bottom-2 inset-x-0 justify-around px-6 opacity-75 pointer-events-none z-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center anim-modak-pulse" style={{ animationDelay: `${i * 0.35}s` }}>
-              <svg viewBox="0 0 30 36" className="w-6 h-8 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
-                <ellipse cx="15" cy="32" rx="13" ry="2.5" fill="#D97706" />
-                <path d="M15 2 C8 12 4 24 5 30 C7 32 23 32 25 30 C26 24 22 12 15 2 Z" fill="url(#modakGradMini)" stroke="#FDE68A" strokeWidth="1" />
-                <defs>
-                  <linearGradient id="modakGradMini" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FEF08A" />
-                    <stop offset="40%" stopColor="#FBBF24" />
-                    <stop offset="100%" stopColor="#B45309" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 3. HOLI: Splatters */}
-      {activeFestival.type === 'holi' && (
-        <div className="hidden sm:block absolute inset-0 pointer-events-none overflow-hidden z-1">
-          {[
-            { col: '#EC4899', x: '6%', y: '16%', size: 'w-16 h-16', delay: '0s' },
-            { col: '#06B6D4', x: '88%', y: '20%', size: 'w-16 h-16', delay: '1s' },
-            { col: '#EAB308', x: '16%', y: '68%', size: 'w-16 h-16', delay: '1.8s' },
-            { col: '#A855F7', x: '82%', y: '65%', size: 'w-16 h-16', delay: '0.6s' }
-          ].map((splash, i) => (
-            <div
-              key={i}
-              className={`absolute ${splash.size} anim-holi-pop`}
-              style={{
-                left: splash.x,
-                top: splash.y,
-                animationDelay: splash.delay
-              }}
-            >
-              <svg viewBox="0 0 100 100" className="w-full h-full" style={{ filter: `drop-shadow(0 0 12px ${splash.col})` }}>
-                <path
-                  d="M50 15 Q65 5 75 25 Q95 35 85 55 Q95 80 70 85 Q50 95 30 85 Q5 80 15 55 Q5 35 25 25 Q35 5 50 15 Z"
-                  fill={splash.col}
-                  opacity="0.8"
-                />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 4. JANMASHTAMI: Dahi Handi */}
-      {activeFestival.type === 'janmashtami' && (
-        <div className="hidden sm:flex absolute top-2 inset-x-0 justify-around px-8 pointer-events-none z-1">
-          {[0, 1, 2].map((idx) => (
-            <div key={idx} className="flex flex-col items-center anim-handi-sway" style={{ animationDelay: `${idx * 0.6}s` }}>
-              <div className="w-0.5 h-8 bg-gradient-to-b from-amber-300 via-yellow-200 to-amber-500" />
-              <svg viewBox="0 0 40 46" className="w-8 h-10 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]">
-                <path d="M6 14 Q20 8 34 14 Q38 34 20 44 Q2 34 6 14 Z" fill="#D97706" stroke="#FEF08A" strokeWidth="1" />
-                <ellipse cx="20" cy="14" rx="14" ry="4" fill="#FFFFFF" />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 5. INDEPENDENCE DAY: Tiranga Elements */}
-      {activeFestival.type === 'independence' && (
-        <div className="hidden sm:flex absolute bottom-2 inset-x-0 justify-around px-6 opacity-75 pointer-events-none z-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="anim-kite-flutter" style={{ animationDelay: `${i * 0.35}s` }}>
-              <svg viewBox="0 0 46 26" className="w-9 h-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">
-                <rect x="3" y="2" width="40" height="7" fill="#FF9933" rx="1" />
-                <rect x="3" y="9" width="40" height="8" fill="#FFFFFF" />
-                <rect x="3" y="17" width="40" height="7" fill="#138808" rx="1" />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 6. NAVRATRI: Dandiya */}
-      {activeFestival.type === 'navratri' && (
-        <div className="hidden sm:flex absolute bottom-2 inset-x-0 justify-around px-6 opacity-75 pointer-events-none z-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="anim-dandiya-clack" style={{ animationDelay: `${i * 0.35}s` }}>
-              <svg viewBox="0 0 40 40" className="w-7 h-7 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
-                <line x1="6" y1="34" x2="34" y2="6" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" />
-                <line x1="34" y1="34" x2="6" y2="6" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="20" cy="20" r="3" fill="#FBBF24" stroke="#FFFDF8" strokeWidth="1" />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 7. RAKSHA BANDHAN: Rakhis */}
-      {activeFestival.type === 'rakhi' && (
-        <div className="hidden sm:flex absolute bottom-2 inset-x-0 justify-around px-6 opacity-75 pointer-events-none z-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="anim-rakhi-float" style={{ animationDelay: `${i * 0.35}s` }}>
-              <svg viewBox="0 0 46 30" className="w-8 h-6 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]">
-                <path d="M4 15 Q14 11 20 15" stroke="#E11D48" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-                <path d="M26 15 Q32 19 42 15" stroke="#E11D48" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-                <circle cx="23" cy="15" r="6" fill="#FBBF24" stroke="#FEF08A" strokeWidth="1" />
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* SECTION CONTENT: FULLY RESPONSIVE & MOBILE OPTIMIZED */}
+      {/* SECTION CONTENT CONTAINER */}
       {/* ========================================================================= */}
       <div className="relative z-10 max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12 text-[#FFFDF8]">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-3 sm:mb-5">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white/15 border border-white/25 text-[#E5B842] text-[9px] sm:text-[10px] font-bold tracking-wider uppercase mb-1 backdrop-blur-md shadow-xs">
               <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -292,8 +193,8 @@ export const FestiveSpecials: React.FC = () => {
             </p>
           </div>
 
-          {/* Festival Switcher Tabs with Smooth Mobile Finger Swipe */}
-          <div className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0">
+          {/* Festival Switcher Tabs with Smooth Mobile Touch Swiping */}
+          <div className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none">
             {FESTIVAL_CONFIGS.map((fest, idx) => (
               <button
                 key={fest.tag}
@@ -303,7 +204,7 @@ export const FestiveSpecials: React.FC = () => {
                 }}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
                   idx === activeFestivalIndex
-                    ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold'
+                    ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105'
                     : 'bg-white/15 text-white border-white/20 hover:bg-white/25 hover:text-white'
                 }`}
               >
@@ -317,9 +218,9 @@ export const FestiveSpecials: React.FC = () => {
         {currentFeatured && (
           <div
             onClick={() => setSelectedProduct(currentFeatured)}
-            className="bg-[#1C1412]/85 backdrop-blur-xl border border-white/25 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 cursor-pointer hover:border-[#E5B842] transition-all duration-300 shadow-xl group"
+            className="bg-[#1C1412]/85 backdrop-blur-xl border border-white/25 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 cursor-pointer hover:border-[#E5B842] transition-all duration-300 shadow-xl group"
           >
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-8 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-7 items-center">
               
               {/* Food Photo Frame */}
               <div className="md:col-span-5 h-44 sm:h-56 md:h-64 w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/25 relative shadow-inner">
@@ -400,6 +301,205 @@ export const FestiveSpecials: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* DEDICATED ORNAMENTAL BANNER (PROMINENT ON BOTH MOBILE & DESKTOP) */}
+        {/* ========================================================================= */}
+        <div className="mt-3 sm:mt-4 py-1.5 sm:py-2 px-3 sm:px-6 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 flex items-center justify-around overflow-hidden shadow-inner">
+          
+          {/* 1. DIWALI: Flickering Clay Diyas */}
+          {activeFestival.type === 'diwali' && (
+            <>
+              {[...Array(7)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center select-none">
+                  <svg viewBox="0 0 16 22" className="w-3.5 h-5 sm:w-4 sm:h-6 anim-diya-flame" style={{ animationDelay: `${i * 0.25}s` }}>
+                    <path d="M8 0 C10 7 14 12 14 16 C14 20 11 22 8 22 C5 22 2 20 2 16 C2 12 6 7 8 0 Z" fill="url(#diyaGradBar)" />
+                    <defs>
+                      <linearGradient id="diyaGradBar" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#FEF08A" />
+                        <stop offset="50%" stopColor="#FBBF24" />
+                        <stop offset="100%" stopColor="#DC2626" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <svg viewBox="0 0 32 14" className="w-6 h-3 sm:w-8 sm:h-3.5 -mt-0.5">
+                    <ellipse cx="16" cy="4" rx="15" ry="3.5" fill="#B45309" stroke="#F59E0B" strokeWidth="0.8" />
+                    <path d="M2 4 Q16 16 30 4 Z" fill="#78350F" stroke="#F59E0B" strokeWidth="0.6" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 2. GANESH CHATURTHI: Golden Modaks */}
+          {activeFestival.type === 'ganesh' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center anim-modak-pulse select-none" style={{ animationDelay: `${i * 0.3}s` }}>
+                  <svg viewBox="0 0 30 36" className="w-5 h-6 sm:w-7 sm:h-8 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                    <ellipse cx="15" cy="32" rx="13" ry="2.5" fill="#D97706" />
+                    <path d="M15 2 C8 12 4 24 5 30 C7 32 23 32 25 30 C26 24 22 12 15 2 Z" fill="url(#modakGradBar)" stroke="#FDE68A" strokeWidth="1" />
+                    <defs>
+                      <linearGradient id="modakGradBar" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#FEF08A" />
+                        <stop offset="40%" stopColor="#FBBF24" />
+                        <stop offset="100%" stopColor="#B45309" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 3. HOLI: Splatters */}
+          {activeFestival.type === 'holi' && (
+            <>
+              {[
+                { col: '#EC4899', name: 'Gulal Pink' },
+                { col: '#06B6D4', name: 'Abir Cyan' },
+                { col: '#EAB308', name: 'Haldi Gold' },
+                { col: '#A855F7', name: 'Kesar Violet' },
+                { col: '#10B981', name: 'Mehendi Green' },
+                { col: '#F97316', name: 'Saffron Glow' }
+              ].map((splash, i) => (
+                <div key={i} className="anim-holi-pop" style={{ animationDelay: `${i * 0.2}s` }}>
+                  <svg viewBox="0 0 100 100" className="w-6 h-6 sm:w-8 sm:h-8" style={{ filter: `drop-shadow(0 0 8px ${splash.col})` }}>
+                    <path
+                      d="M50 15 Q65 5 75 25 Q95 35 85 55 Q95 80 70 85 Q50 95 30 85 Q5 80 15 55 Q5 35 25 25 Q35 5 50 15 Z"
+                      fill={splash.col}
+                      opacity="0.9"
+                    />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 4. JANMASHTAMI: Dahi Handi */}
+          {activeFestival.type === 'janmashtami' && (
+            <>
+              {[...Array(5)].map((_, idx) => (
+                <div key={idx} className="flex flex-col items-center anim-handi-sway" style={{ animationDelay: `${idx * 0.4}s` }}>
+                  <div className="w-0.5 h-3 sm:h-4 bg-gradient-to-b from-amber-300 to-amber-500" />
+                  <svg viewBox="0 0 40 46" className="w-6 h-7 sm:w-8 sm:h-9 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                    <path d="M6 14 Q20 8 34 14 Q38 34 20 44 Q2 34 6 14 Z" fill="#D97706" stroke="#FEF08A" strokeWidth="1" />
+                    <ellipse cx="20" cy="14" rx="14" ry="4" fill="#FFFFFF" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 5. MAKAR SANKRANTI: Kites */}
+          {activeFestival.type === 'makar_sankranti' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-kite-flutter select-none" style={{ animationDelay: `${i * 0.25}s` }}>
+                  <svg viewBox="0 0 40 40" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
+                    <polygon points="20,2 38,20 20,38 2,20" fill={i % 2 === 0 ? '#F59E0B' : '#EF4444'} stroke="#FFFDF8" strokeWidth="1" />
+                    <line x1="20" y1="2" x2="20" y2="38" stroke="#FFFDF8" strokeWidth="0.8" />
+                    <line x1="2" y1="20" x2="38" y2="20" stroke="#FFFDF8" strokeWidth="0.8" />
+                    <polygon points="20,38 24,44 16,44" fill="#10B981" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 6. MAHA SHIVRATRI: Sacred Trishul & Bilva */}
+          {activeFestival.type === 'maha_shivratri' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center anim-modak-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
+                  <svg viewBox="0 0 32 32" className="w-5 h-5 sm:w-7 sm:h-7 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]">
+                    <circle cx="16" cy="16" r="14" fill="#311042" stroke="#C084FC" strokeWidth="1" />
+                    <path d="M16 6 L16 26 M10 10 Q16 16 16 20 M22 10 Q16 16 16 20" stroke="#FDE047" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 7. GUDI PADWA: Gudi & Mango Blossom */}
+          {activeFestival.type === 'gudi_padwa' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-modak-pulse" style={{ animationDelay: `${i * 0.25}s` }}>
+                  <svg viewBox="0 0 30 36" className="w-5 h-6 sm:w-7 sm:h-8 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
+                    <line x1="15" y1="36" x2="15" y2="6" stroke="#D97706" strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="15" cy="6" r="5" fill="#FBBF24" stroke="#FFFDF8" strokeWidth="0.8" />
+                    <path d="M7 12 Q15 8 23 12 L21 24 Q15 28 9 24 Z" fill="#EF4444" stroke="#FDE047" strokeWidth="0.8" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 8. RAKSHA BANDHAN: Floral Rakhis */}
+          {activeFestival.type === 'rakhi' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-rakhi-float" style={{ animationDelay: `${i * 0.3}s` }}>
+                  <svg viewBox="0 0 46 30" className="w-7 h-5 sm:w-9 sm:h-7 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]">
+                    <path d="M4 15 Q14 11 20 15" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                    <path d="M26 15 Q32 19 42 15" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                    <circle cx="23" cy="15" r="6" fill="#FBBF24" stroke="#FEF08A" strokeWidth="1" />
+                    <circle cx="23" cy="15" r="2.8" fill="#BE123C" stroke="#FFFFFF" strokeWidth="0.5" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 9. NAVRATRI: Dandiya */}
+          {activeFestival.type === 'navratri' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-dandiya-clack" style={{ animationDelay: `${i * 0.3}s` }}>
+                  <svg viewBox="0 0 40 40" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
+                    <line x1="6" y1="34" x2="34" y2="6" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="34" y1="34" x2="6" y2="6" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" />
+                    <circle cx="20" cy="20" r="3" fill="#FBBF24" stroke="#FFFDF8" strokeWidth="1" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 10. INDEPENDENCE DAY: Tiranga Kites */}
+          {activeFestival.type === 'independence' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-kite-flutter" style={{ animationDelay: `${i * 0.3}s` }}>
+                  <svg viewBox="0 0 46 26" className="w-7 h-4 sm:w-9 sm:h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">
+                    <rect x="3" y="2" width="40" height="7" fill="#FF9933" rx="1" />
+                    <rect x="3" y="9" width="40" height="8" fill="#FFFFFF" />
+                    <rect x="3" y="17" width="40" height="7" fill="#138808" rx="1" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 11. GOAN FESTIVALS: Floral Coronets / Kopel */}
+          {activeFestival.type === 'goan_festivals' && (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="anim-modak-pulse" style={{ animationDelay: `${i * 0.25}s` }}>
+                  <svg viewBox="0 0 36 36" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#10B981" strokeWidth="2.5" strokeDasharray="3,3" />
+                    <circle cx="18" cy="6" r="3" fill="#F59E0B" />
+                    <circle cx="29" cy="18" r="3" fill="#EC4899" />
+                    <circle cx="18" cy="30" r="3" fill="#FBBF24" />
+                    <circle cx="7" cy="18" r="3" fill="#06B6D4" />
+                  </svg>
+                </div>
+              ))}
+            </>
+          )}
+
+        </div>
 
       </div>
     </section>

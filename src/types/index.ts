@@ -16,9 +16,13 @@ export type FestivalTag =
   | 'Ganesh Chaturthi' 
   | 'Holi' 
   | 'Janmashtami'
-  | 'Independence Day'
+  | 'Makar Sankranti'
+  | 'Maha Shivratri'
+  | 'Gudi Padwa'
+  | 'Raksha Bandhan'
   | 'Navratri' 
-  | 'Raksha Bandhan' 
+  | 'Independence Day'
+  | 'Goan Festivals'
   | 'General';
 
 export interface Product {
