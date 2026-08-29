@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product } from '../types';
-import { Sparkles, Eye, MessageCircle, ArrowRight } from 'lucide-react';
+import { Sparkles, Eye, ArrowRight } from 'lucide-react';
 
 interface FavoriteItemConfig {
   id: string;
@@ -137,11 +137,6 @@ export const SignatureShowcase: React.FC = () => {
                 ? product.images[0]
                 : '/products/kajukatli.jpg';
 
-            const whatsappMessage = encodeURIComponent(
-              `Hello Shri Laxmi Sweet Mart! I would like to inquire about fresh *${product.name}* (₹${product.indicativePrice}/${product.unit}).`
-            );
-            const whatsappUrl = `https://wa.me/919423313875?text=${whatsappMessage}`;
-
             return (
               <div
                 key={product.id}
@@ -175,7 +170,7 @@ export const SignatureShowcase: React.FC = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2.5">
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] uppercase tracking-wider font-bold text-[#6E1824] dark:text-[#F0C05A]">
@@ -198,26 +193,17 @@ export const SignatureShowcase: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="pt-2 border-t border-[#E9DED0] dark:border-[#382B29] flex items-center justify-between gap-1.5">
+                  {/* Action Button: Explore */}
+                  <div className="pt-2 border-t border-[#E9DED0] dark:border-[#382B29]">
                     <button
                       type="button"
                       onClick={() => setSelectedProduct(product)}
-                      className="flex-1 py-1.5 px-2.5 rounded-xl bg-white dark:bg-[#2B2120] hover:bg-[#6E1824] hover:text-white dark:hover:bg-[#8B1E2E] dark:hover:text-white text-[#241A17] dark:text-[#FFFDF8] border border-[#E9DED0] dark:border-[#382B29] text-[11px] sm:text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                      className="w-full py-1.5 sm:py-2 px-3 rounded-xl bg-white dark:bg-[#2B2120] hover:bg-[#6E1824] hover:text-white dark:hover:bg-[#8B1E2E] dark:hover:text-white text-[#6E1824] dark:text-[#F0C05A] border border-[#E9DED0] dark:border-[#382B29] text-[11px] sm:text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 group-hover:bg-[#6E1824] group-hover:text-white dark:group-hover:bg-[#8B1E2E]"
                     >
-                      <Eye className="w-3 h-3" />
-                      <span>View</span>
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Explore</span>
+                      <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform ml-0.5" />
                     </button>
-
-                    <a
-                      href={whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366] text-[#166534] dark:text-[#4ADE80] hover:text-white dark:hover:text-white border border-[#25D366]/30 transition-all shadow-2xs cursor-pointer"
-                      title={`Order ${product.name} on WhatsApp`}
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                    </a>
                   </div>
 
                 </div>
