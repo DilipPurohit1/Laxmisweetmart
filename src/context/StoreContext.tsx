@@ -14,36 +14,28 @@ import {
  */
 export const normalizeProduct = (p: any): Product => {
   if (!p || typeof p !== 'object') {
-    return {
-      id: `item-${Date.now()}`,
-      name: 'Special Sweet',
-      description: 'Handcrafted traditional sweet at Shri Laxmi Sweet Mart.',
-      category: 'khoya-sweets',
-      unit: 'kg',
-      indicativePrice: 500,
-      images: ['/products/placeholder.jpg'],
-      allergens: ['milk'],
-      isFestiveSpecial: false,
-      isPerishable: false,
-      isVisible: true,
-      isPlaceholderSample: false
-    };
+    return INITIAL_PRODUCTS[0];
   }
 
+  const initialMatch = INITIAL_PRODUCTS.find(ip => ip.id === p.id);
   const rawImages = Array.isArray(p.images) ? p.images : (p.images ? [p.images] : []);
-  const validImages = rawImages.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+  const validImages = rawImages.filter((img: any) => typeof img === 'string' && img.trim().length > 0 && !img.includes('placeholder'));
+
+  const finalImages = initialMatch 
+    ? initialMatch.images 
+    : (validImages.length > 0 ? validImages : ['/products/kajukatli.jpg']);
 
   return {
     id: String(p.id || `item-${Date.now()}`),
-    name: String(p.name || 'Special Sweet'),
-    description: String(p.description || 'Freshly prepared at Shri Laxmi Sweet Mart Mapusa.'),
-    category: (p.category || 'khoya-sweets') as Category,
-    unit: (p.unit || 'kg') as Product['unit'],
-    indicativePrice: typeof p.indicativePrice === 'number' ? p.indicativePrice : (Number(p.indicativePrice) || 500),
-    images: validImages.length > 0 ? validImages : ['/products/placeholder.jpg'],
-    allergens: Array.isArray(p.allergens) && p.allergens.length > 0 ? p.allergens : ['milk'],
-    isFestiveSpecial: Boolean(p.isFestiveSpecial),
-    festivalTag: p.festivalTag,
+    name: String(p.name || initialMatch?.name || 'Special Sweet'),
+    description: String(p.description || initialMatch?.description || 'Freshly prepared at Shri Laxmi Sweet Mart Mapusa.'),
+    category: (p.category || initialMatch?.category || 'khoya-sweets') as Category,
+    unit: (p.unit || initialMatch?.unit || 'kg') as Product['unit'],
+    indicativePrice: typeof p.indicativePrice === 'number' ? p.indicativePrice : (Number(p.indicativePrice) || initialMatch?.indicativePrice || 500),
+    images: finalImages,
+    allergens: Array.isArray(p.allergens) && p.allergens.length > 0 ? p.allergens : (initialMatch?.allergens || ['milk']),
+    isFestiveSpecial: p.isFestiveSpecial !== undefined ? Boolean(p.isFestiveSpecial) : Boolean(initialMatch?.isFestiveSpecial),
+    festivalTag: p.festivalTag || initialMatch?.festivalTag,
     isPerishable: Boolean(p.isPerishable),
     isVisible: p.isVisible !== false,
     isPlaceholderSample: Boolean(p.isPlaceholderSample),
@@ -99,7 +91,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const v = localStorage.getItem('slsm_cat_version');
-      if (v === 'v2.2') {
+      if (v === 'v4.0_fixed') {
         const saved = localStorage.getItem('slsm_products');
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -108,7 +100,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           }
         }
       } else {
-        localStorage.setItem('slsm_cat_version', 'v2.2');
+        localStorage.setItem('slsm_cat_version', 'v4.0_fixed');
         localStorage.setItem('slsm_products', JSON.stringify(INITIAL_PRODUCTS));
       }
     } catch {}
@@ -118,7 +110,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [adminProducts, setAdminProducts] = useState<Product[]>(() => {
     try {
       const v = localStorage.getItem('slsm_cat_version');
-      if (v === 'v2.2') {
+      if (v === 'v4.0_fixed') {
         const saved = localStorage.getItem('slsm_products');
         if (saved) {
           const parsed = JSON.parse(saved);
