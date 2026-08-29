@@ -41,16 +41,16 @@ export const SignatureShowcase: React.FC = () => {
       : '/products/placeholder.jpg';
 
   return (
-    <section id="favourites" className="py-6 sm:py-9 bg-[#FFFDF8] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
+    <section id="favourites" className="pt-10 sm:pt-14 pb-8 sm:pb-12 bg-[#FFFDF8] border-b border-[#E9DED0] text-left scroll-mt-20 sm:scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12">
         
         {/* Section Heading */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4 sm:mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5 sm:mb-7">
           <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase text-[#6E1824] block mb-0.5">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-[#6E1824] block mb-1">
               Handcrafted Specialties
             </span>
-            <h2 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
+            <h2 className="text-2xl sm:text-3xl font-serif font-black text-[#241A17]">
               A Few of Our Favourites
             </h2>
           </div>
@@ -70,31 +70,31 @@ export const SignatureShowcase: React.FC = () => {
         </div>
 
         {/* Compact Balanced Magazine Showcase */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           
           {/* Main Spotlight Card */}
           <div className="lg:col-span-7 group rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 shadow-xs hover:shadow-sm">
             <div className="space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[9px] font-bold uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
                   Featured Specialty
                 </span>
-                <span className="text-sm font-serif font-bold text-[#6E1824]">
-                  ₹{activeItem.indicativePrice} <span className="text-[10px] font-normal text-[#241A17]/70">/{activeItem.unit}</span>
+                <span className="text-sm sm:text-base font-serif font-bold text-[#6E1824]">
+                  ₹{activeItem.indicativePrice} <span className="text-[10px] sm:text-xs font-normal text-[#241A17]/70">/{activeItem.unit}</span>
                 </span>
               </div>
               <h3 className="text-lg sm:text-xl font-serif font-black text-[#241A17]">
                 {activeItem.name}
               </h3>
-              <p className="text-xs text-[#241A17]/80 line-clamp-2 leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#241A17]/80 line-clamp-2 leading-relaxed">
                 {activeItem.description}
               </p>
             </div>
 
-            {/* Compact Photo Frame */}
+            {/* Photo Frame */}
             <div 
               onClick={() => setSelectedProduct(activeItem)}
-              className="my-3 w-full h-44 sm:h-52 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex items-center justify-center relative cursor-pointer group/img shadow-inner"
+              className="my-3 w-full h-48 sm:h-56 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex items-center justify-center relative cursor-pointer group/img shadow-inner"
             >
               <img
                 src={activeImage}
@@ -144,8 +144,8 @@ export const SignatureShowcase: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Compact Curated Cards */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-2.5 sm:gap-3">
+          {/* Right: Curated Cards */}
+          <div className="lg:col-span-5 flex flex-col justify-between gap-3 sm:gap-3.5">
             {sideItems.map((item) => {
               const itemImg =
                 Array.isArray(item.images) && item.images.length > 0 && item.images[0]
@@ -156,9 +156,9 @@ export const SignatureShowcase: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => setSelectedProduct(item)}
-                  className="group cursor-pointer p-2.5 sm:p-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 transition-all flex items-center gap-3 shadow-2xs hover:shadow-xs"
+                  className="group cursor-pointer p-3 sm:p-3.5 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 transition-all flex items-center gap-3 shadow-2xs hover:shadow-xs"
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex-shrink-0">
+                  <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-lg bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex-shrink-0">
                     <img
                       src={itemImg}
                       alt={item.name}
