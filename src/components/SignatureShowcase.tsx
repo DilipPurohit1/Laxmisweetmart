@@ -41,7 +41,7 @@ export const SignatureShowcase: React.FC = () => {
       : '/products/placeholder.jpg';
 
   return (
-    <section id="favourites" className="py-10 sm:py-16 bg-[#FFFDF8] border-b border-[#E9DED0] text-left">
+    <section id="favourites" className="py-10 sm:py-16 bg-[#FFFDF8] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
         
         {/* Section Heading */}

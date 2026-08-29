@@ -3,7 +3,7 @@ import { ShieldCheck, Sparkles, Heart } from 'lucide-react';
 
 export const HeritageStory: React.FC = () => {
   return (
-    <section id="heritage" className="py-12 sm:py-18 bg-[#FFFDF8] dark:bg-[#1C1615] border-b border-[#E9DED0] dark:border-[#382B29] text-left relative overflow-hidden transition-colors duration-300">
+    <section id="heritage" className="py-12 sm:py-18 bg-[#FFFDF8] dark:bg-[#1C1615] border-b border-[#E9DED0] dark:border-[#382B29] text-left relative overflow-hidden transition-colors duration-300 scroll-mt-16 sm:scroll-mt-20">
       
       {/* Subtle Classical Decorative Line at Top */}
       <div className="flex items-center justify-center gap-3 max-w-xs mx-auto mb-10 opacity-60">

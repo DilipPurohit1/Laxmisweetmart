@@ -10,7 +10,7 @@ export const VisitUsSection: React.FC = () => {
   const iframeEmbedUrl = `https://maps.google.com/maps?q=${exactMapQuery}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    <section id="visit" className="py-10 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left">
+    <section id="visit" className="py-10 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
         
         {/* Minimal Section Header */}

@@ -82,8 +82,8 @@ export const CategoryExplorer: React.FC = () => {
   };
 
   return (
-    <section id="categories" className="py-8 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left">
-      <div className="max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12">
+    <section id="categories" className="py-8 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
         
         {/* Section Header */}
         <div className="max-w-2xl mb-6 sm:mb-8">

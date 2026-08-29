@@ -33,7 +33,7 @@ export const ProductCatalog: React.FC = () => {
   });
 
   return (
-    <section id="catalog" className="py-8 sm:py-16 max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12 text-left">
+    <section id="catalog" className="py-8 sm:py-16 max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12 text-left scroll-mt-16 sm:scroll-mt-20">
       
       {/* Section Header */}
       <div className="max-w-3xl mx-auto text-center mb-6 sm:mb-8">

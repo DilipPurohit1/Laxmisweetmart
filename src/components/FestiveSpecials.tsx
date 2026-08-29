@@ -72,7 +72,7 @@ const FESTIVAL_CONFIGS: FestivalConfig[] = [
     badge: 'Bholenath Bhog',
     themeBg: '#1B0B2E',
     ambientGlow: 'from-indigo-500/25 via-purple-900/20 to-transparent',
-    tagline: 'Pure kesar khoya pedas, badam milk, and authentic phalahari offerings.',
+    tagline: 'Pure kesar khoya pedas, badam milk, and authentic phalahari offerings for Lord Shiva.',
     signatureId: 'angoori-ras-malai',
     type: 'maha_shivratri'
   },
@@ -123,7 +123,7 @@ const FESTIVAL_CONFIGS: FestivalConfig[] = [
     themeBg: '#0A2624',
     ambientGlow: 'from-emerald-500/25 via-teal-900/20 to-transparent',
     tagline: 'Signature Goan savory farsan, cashew special sweets, and authentic local tea-time delicacies.',
-    signatureId: 'special-sweet',
+    signatureId: 'goan-farsan-mixture',
     type: 'goan_festivals'
   }
 ];
@@ -132,10 +132,8 @@ export const FestiveSpecials: React.FC = () => {
   const { products, setSelectedProduct } = useStore();
   const [activeFestivalIndex, setActiveFestivalIndex] = useState(0);
   const [activeProductIndex, setActiveProductIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
 
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeFestival = FESTIVAL_CONFIGS[activeFestivalIndex];
 
@@ -161,38 +159,14 @@ export const FestiveSpecials: React.FC = () => {
     return () => clearInterval(timer);
   }, [finalProducts.length]);
 
-  // Jitter-free, 60fps continuous smooth glide for festival selection buttons
-  useEffect(() => {
-    const container = tabsContainerRef.current;
-    if (!container) return;
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -200 : 200;
+      tabsContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
-    let animationFrame: number;
-    const speed = 0.75; // Snappy, smooth speed
-
-    const animate = () => {
-      if (!isPaused && container) {
-        if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
-          container.scrollLeft = 0;
-        } else {
-          container.scrollLeft += speed;
-        }
-      }
-      animationFrame = requestAnimationFrame(animate);
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isPaused]);
-
-  // Handle user click on a festival tab without jitter
   const handleFestivalClick = (idx: number) => {
-    // Pause auto-scroll immediately on user interaction
-    setIsPaused(true);
-    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-    pauseTimeoutRef.current = setTimeout(() => {
-      setIsPaused(false);
-    }, 4000);
-
     setActiveFestivalIndex(idx);
     setActiveProductIndex(0);
   };
@@ -202,7 +176,7 @@ export const FestiveSpecials: React.FC = () => {
   return (
     <section
       id="festive"
-      className="relative py-6 sm:py-12 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none"
+      className="relative py-6 sm:py-12 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none scroll-mt-16 sm:scroll-mt-20"
       style={{
         backgroundColor: activeFestival.themeBg
       }}
@@ -233,34 +207,53 @@ export const FestiveSpecials: React.FC = () => {
             </p>
           </div>
 
-          {/* Festival Switcher Tabs with Buttery Smooth Movement */}
-          <div
-            ref={tabsContainerRef}
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => {
-              if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-              pauseTimeoutRef.current = setTimeout(() => setIsPaused(false), 3000);
-            }}
-            className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none cursor-grab active:cursor-grabbing"
-          >
-            {FESTIVAL_CONFIGS.map((fest, idx) => {
-              const isActive = idx === activeFestivalIndex;
-              return (
-                <button
-                  key={fest.tag}
-                  onClick={() => handleFestivalClick(idx)}
-                  className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
-                    isActive
-                      ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105 ring-2 ring-[#E5B842]/40'
-                      : 'bg-white/15 text-white border-white/20 hover:bg-white/25 hover:text-white'
-                  }`}
-                >
-                  {fest.tag}
-                </button>
-              );
-            })}
+          {/* Festival Switcher Tabs with Left & Right Arrow Buttons */}
+          <div className="flex items-center gap-1 sm:gap-1.5 max-w-full md:max-w-xl">
+            {/* Left Scroll Button */}
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/15 hover:bg-[#E5B842] text-white hover:text-[#241A17] border border-white/25 flex items-center justify-center transition-all flex-shrink-0 shadow-xs cursor-pointer active:scale-95"
+              title="Previous Festivals"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Scrollable Tabs Row */}
+            <div
+              ref={tabsContainerRef}
+              className="flex items-center gap-1.5 overflow-x-auto touch-pan-x py-1 scrollbar-none overscroll-x-contain select-none scroll-smooth flex-1"
+            >
+              {FESTIVAL_CONFIGS.map((fest, idx) => {
+                const isActive = idx === activeFestivalIndex;
+                return (
+                  <button
+                    key={fest.tag}
+                    type="button"
+                    onClick={() => handleFestivalClick(idx)}
+                    className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
+                      isActive
+                        ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105 ring-2 ring-[#E5B842]/40'
+                        : 'bg-white/15 text-white border-white/20 hover:bg-white/25 hover:text-white'
+                    }`}
+                  >
+                    {fest.tag}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right Scroll Button */}
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/15 hover:bg-[#E5B842] text-white hover:text-[#241A17] border border-white/25 flex items-center justify-center transition-all flex-shrink-0 shadow-xs cursor-pointer active:scale-95"
+              title="Next Festivals"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           </div>
         </div>
 
@@ -457,51 +450,64 @@ export const FestiveSpecials: React.FC = () => {
             </>
           )}
 
-          {/* 6. MAHA SHIVRATRI: Divine Golden Trishul with Damru & Crescent Moon */}
+          {/* 6. MAHA SHIVRATRI: Authentic Lord Shiva Golden Trishul & Damru */}
           {activeFestival.type === 'maha_shivratri' && (
             <>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex flex-col items-center anim-modak-pulse select-none" style={{ animationDelay: `${i * 0.25}s` }}>
-                  <svg viewBox="0 0 36 44" className="w-5 h-6 sm:w-7 sm:h-8 drop-shadow-[0_0_10px_rgba(253,224,71,0.9)]">
-                    {/* Crescent Moon behind Trident */}
+                  <svg viewBox="0 0 40 48" className="w-6 h-7 sm:w-8 sm:h-9 drop-shadow-[0_0_12px_rgba(253,224,71,0.95)]">
+                    {/* Golden Trishul Base & Staff */}
+                    <line x1="20" y1="14" x2="20" y2="46" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
+                    
+                    {/* Central Sharp Spear Point */}
                     <path
-                      d="M23 8 C18 10 16 16 18 22 C15 19 15 12 21 7 Z"
-                      fill="#FEF08A"
-                      opacity="0.9"
-                    />
-                    {/* Central Trishul Spear & Side Prongs */}
-                    <path
-                      d="M18 2 L20 10 L18 12 L16 10 Z"
+                      d="M20 2 L22.5 14 L20 16 L17.5 14 Z"
                       fill="url(#trishulGradBar)"
-                      stroke="#FEF08A"
-                      strokeWidth="0.6"
+                      stroke="#FFFDF8"
+                      strokeWidth="0.8"
+                    />
+
+                    {/* Symmetrical Left & Right Curved Trishul Blades */}
+                    <path
+                      d="M20 16 C14 16 9 12 9 6 C11 8 14 11 17 11 C17 14 18.5 15.5 20 16 Z"
+                      fill="url(#trishulGradBar)"
+                      stroke="#FFFDF8"
+                      strokeWidth="0.8"
                     />
                     <path
-                      d="M10 8 C10 16 16 19 18 20 C20 19 26 16 26 8 C24 10 22 13 18 13 C14 13 12 10 10 8 Z"
+                      d="M20 16 C26 16 31 12 31 6 C29 8 26 11 23 11 C23 14 21.5 15.5 20 16 Z"
                       fill="url(#trishulGradBar)"
+                      stroke="#FFFDF8"
+                      strokeWidth="0.8"
+                    />
+
+                    {/* Cross Guard Bar */}
+                    <rect x="13" y="15" width="14" height="2.5" rx="1" fill="#FBBF24" stroke="#D97706" strokeWidth="0.5" />
+
+                    {/* Damru (Shiva's Hourglass Drum) */}
+                    <path
+                      d="M15 23 L25 23 L16 30 L24 30 Z"
+                      fill="#B45309"
                       stroke="#FEF08A"
                       strokeWidth="0.8"
                     />
-                    {/* Trident Shaft */}
-                    <line x1="18" y1="12" x2="18" y2="42" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
-                    {/* Damru (Hourglass Drum) */}
-                    <path
-                      d="M13 24 L23 24 L14 31 L22 31 Z"
-                      fill="#D97706"
-                      stroke="#FDE68A"
-                      strokeWidth="0.7"
-                    />
-                    <circle cx="18" cy="27.5" r="1.2" fill="#FEF08A" />
-                    <circle cx="11" cy="28" r="1" fill="#EF4444" />
-                    <circle cx="25" cy="28" r="1" fill="#EF4444" />
+                    <circle cx="20" cy="26.5" r="1.5" fill="#FEF08A" />
+                    {/* Hanging String & Red Beads */}
+                    <path d="M20 26.5 Q12 28 11 32" stroke="#FEF08A" strokeWidth="0.7" fill="none" />
+                    <circle cx="11" cy="32" r="1.2" fill="#DC2626" />
+                    <path d="M20 26.5 Q28 28 29 32" stroke="#FEF08A" strokeWidth="0.7" fill="none" />
+                    <circle cx="29" cy="32" r="1.2" fill="#DC2626" />
+
                     {/* Sacred Tripundra Vibhuti Lines */}
-                    <line x1="15" y1="16" x2="21" y2="16" stroke="#FFFFFF" strokeWidth="0.8" />
-                    <line x1="15.5" y1="17.5" x2="20.5" y2="17.5" stroke="#FFFFFF" strokeWidth="0.8" />
-                    <circle cx="18" cy="16.7" r="0.6" fill="#DC2626" />
+                    <line x1="17" y1="18.5" x2="23" y2="18.5" stroke="#FFFFFF" strokeWidth="0.8" />
+                    <line x1="17.5" y1="19.7" x2="22.5" y2="19.7" stroke="#FFFFFF" strokeWidth="0.8" />
+                    <circle cx="20" cy="19.1" r="0.6" fill="#DC2626" />
+
                     <defs>
                       <linearGradient id="trishulGradBar" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FEF08A" />
-                        <stop offset="50%" stopColor="#FBBF24" />
+                        <stop offset="0%" stopColor="#FFFDF8" />
+                        <stop offset="35%" stopColor="#FEF08A" />
+                        <stop offset="70%" stopColor="#FBBF24" />
                         <stop offset="100%" stopColor="#D97706" />
                       </linearGradient>
                     </defs>
@@ -557,15 +563,34 @@ export const FestiveSpecials: React.FC = () => {
             </>
           )}
 
-          {/* 10. INDEPENDENCE DAY: Tiranga Kites */}
+          {/* 10. INDEPENDENCE DAY: Tiranga Flag with 24-Spoke Ashoka Chakra */}
           {activeFestival.type === 'independence' && (
             <>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="anim-kite-flutter select-none" style={{ animationDelay: `${i * 0.3}s` }}>
-                  <svg viewBox="0 0 46 26" className="w-7 h-4 sm:w-9 sm:h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">
-                    <rect x="3" y="2" width="40" height="7" fill="#FF9933" rx="1" />
-                    <rect x="3" y="9" width="40" height="8" fill="#FFFFFF" />
-                    <rect x="3" y="17" width="40" height="7" fill="#138808" rx="1" />
+                  <svg viewBox="0 0 50 32" className="w-8 h-5 sm:w-11 sm:h-7 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
+                    {/* Top Saffron Band */}
+                    <rect x="2" y="2" width="46" height="9" fill="#FF9933" rx="1.5" />
+                    {/* Middle White Band */}
+                    <rect x="2" y="11" width="46" height="10" fill="#FFFFFF" />
+                    {/* Bottom India Green Band */}
+                    <rect x="2" y="21" width="46" height="9" fill="#138808" rx="1.5" />
+                    
+                    {/* Navy Blue Ashoka Chakra Circle in Center */}
+                    <circle cx="25" cy="16" r="4.2" stroke="#000080" strokeWidth="0.7" fill="none" />
+                    <circle cx="25" cy="16" r="0.8" fill="#000080" />
+                    
+                    {/* Ashoka Chakra 24 Spokes */}
+                    <g stroke="#000080" strokeWidth="0.4">
+                      {[...Array(12)].map((_, s) => {
+                        const angle = (s * 30 * Math.PI) / 180;
+                        const x1 = 25 - Math.cos(angle) * 3.8;
+                        const y1 = 16 - Math.sin(angle) * 3.8;
+                        const x2 = 25 + Math.cos(angle) * 3.8;
+                        const y2 = 16 + Math.sin(angle) * 3.8;
+                        return <line key={s} x1={x1} y1={y1} x2={x2} y2={y2} />;
+                      })}
+                    </g>
                   </svg>
                 </div>
               ))}

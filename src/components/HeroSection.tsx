@@ -55,7 +55,7 @@ export const HeroSection: React.FC = () => {
   };
 
   return (
-    <section id="hero" className="bg-[#FFFDF8] border-b border-[#E9DED0] pt-6 sm:pt-10 pb-10 sm:pb-14 text-left">
+    <section id="hero" className="bg-[#FFFDF8] border-b border-[#E9DED0] pt-6 sm:pt-10 pb-10 sm:pb-14 text-left scroll-mt-16 sm:scroll-mt-20">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
