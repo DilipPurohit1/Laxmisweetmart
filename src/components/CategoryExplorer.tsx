@@ -8,7 +8,6 @@ interface CategoryTile {
   title: string;
   description: string;
   image: string;
-  size: 'large' | 'medium' | 'small';
 }
 
 const CATEGORY_TILES: CategoryTile[] = [
@@ -17,56 +16,48 @@ const CATEGORY_TILES: CategoryTile[] = [
     title: 'Khoya Sweets',
     description: 'Slow-caramelized milk mawa pedas, gulab jamun, and traditional layered milk cake.',
     image: '/products/cat-khoya.jpg',
-    size: 'large'
   },
   {
     id: 'kaju-katli',
     title: 'Kaju Katli',
     description: 'Silky diamond-cut cashew fudge with edible silver leaf and stuffed pistachio rolls.',
     image: '/products/cat-kajukatli.jpg',
-    size: 'medium'
   },
   {
     id: 'laddoo',
-    title: 'Laddoo',
-    description: 'Fresh motichoor and slow-roasted shahi besan laddoos with saffron and pistachios.',
+    title: 'Laddoo & Modak',
+    description: 'Motichoor, shahi besan laddoos, and ceremonial mawa modaks.',
     image: '/products/cat-laddoo.jpg',
-    size: 'medium'
   },
   {
     id: 'ras-malai',
-    title: 'Ras Malai',
-    description: 'Fresh daily homemade cottage cheese patties immersed in saffron and pistachio rabdi.',
+    title: 'Ras Malai & Chenna',
+    description: 'Fresh homemade cottage cheese patties in saffron-pistachio rabdi and rasgullas.',
     image: '/products/cat-rasmalai.jpg',
-    size: 'small'
   },
   {
     id: 'namkeen',
-    title: 'Namkeen',
-    description: 'Mapusa special spicy farsan mixtures, crisp bhakarwadi, and savory Goan snacks.',
+    title: 'Namkeen & Savouries',
+    description: 'Mapusa special spicy farsan mixtures, crisp bhakarwadi, and tikha sev.',
     image: '/products/cat-namkeen.jpg',
-    size: 'small'
   },
   {
     id: 'dry-fruits',
     title: 'Dry Fruits',
-    description: 'Directly sourced premium Goan jumbo W180 cashews and hand-sorted California almonds.',
+    description: 'Premium Goan W180 cashews, California almonds, and roasted pistachios.',
     image: '/products/cat-dryfruits.jpg',
-    size: 'small'
   },
   {
     id: 'bakery',
-    title: 'Bakery',
-    description: 'Traditional Goan coconut bolinhas cookies and cardamom-spiced butter nankhatai.',
+    title: 'Bakery & Goan Delicacies',
+    description: 'Traditional 7-layer Goan Bebinca, rich Dodol, and butter nankhatai cookies.',
     image: '/products/cat-bakery.jpg',
-    size: 'small'
   },
   {
     id: 'dairy-products',
-    title: 'Dairy Products',
+    title: 'Dairy Specialties',
     description: 'Chilled sweet Punjabi malai lassi and daily batch fresh soft malai paneer.',
     image: '/products/cat-dairy.jpg',
-    size: 'large'
   }
 ];
 
@@ -82,24 +73,24 @@ export const CategoryExplorer: React.FC = () => {
   };
 
   return (
-    <section id="categories" className="py-8 sm:py-16 bg-[#F8F3EA] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
+    <section id="categories" className="py-6 sm:py-9 bg-[#F8F3EA] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12">
         
         {/* Section Header */}
-        <div className="max-w-2xl mb-6 sm:mb-8">
-          <span className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-[#6E1824] block mb-1">
+        <div className="max-w-2xl mb-4 sm:mb-6">
+          <span className="text-[10px] font-bold tracking-widest uppercase text-[#6E1824] block mb-0.5">
             Explore the Counter
           </span>
-          <h2 className="text-xl sm:text-3xl font-serif font-black text-[#241A17]">
+          <h2 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
             Our Eight Specialties
           </h2>
-          <p className="text-xs sm:text-sm text-[#241A17]/80 mt-1 leading-relaxed">
-            From slow-cooked khoya mawa to crisp Mapusa farsan and chilled malai lassi, discover traditional Goan & Indian sweets.
+          <p className="text-xs text-[#241A17]/80 mt-0.5 leading-relaxed">
+            From slow-cooked khoya mawa to Goan Bebinca and Mapusa farsan, discover our handcrafted range.
           </p>
         </div>
 
-        {/* Amazon-style 2-Column Mobile Grid, Spacious Responsive Desktop Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
+        {/* Compact, Uniform Grid (4 cols on desktop, 2 cols on mobile) */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {CATEGORY_TILES.map((cat) => {
             const count = products.filter(p => p.category === cat.id).length;
 
@@ -107,12 +98,10 @@ export const CategoryExplorer: React.FC = () => {
               <div
                 key={cat.id}
                 onClick={() => handleSelectCategory(cat.id)}
-                className={`group rounded-xl sm:rounded-3xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C] cursor-pointer transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between overflow-hidden active:scale-[0.99] ${
-                  cat.size === 'large' ? 'col-span-2 md:col-span-2' : 'col-span-1'
-                }`}
+                className="group rounded-xl sm:rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] hover:border-[#C89B3C] cursor-pointer transition-all duration-300 shadow-2xs hover:shadow-sm flex flex-col justify-between overflow-hidden active:scale-[0.99]"
               >
-                {/* Image Header */}
-                <div className="relative h-32 sm:h-56 lg:h-64 w-full overflow-hidden bg-[#F8F3EA]">
+                {/* Compact Image Header */}
+                <div className="relative h-24 sm:h-32 lg:h-36 w-full overflow-hidden bg-[#F8F3EA]">
                   <img
                     src={cat.image}
                     alt={cat.title}
@@ -121,27 +110,25 @@ export const CategoryExplorer: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   
-                  <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-4 text-[8px] sm:text-[10px] font-bold text-white uppercase tracking-wider bg-[#6E1824]/90 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-xs">
-                    {count} Sweets
+                  <span className="absolute bottom-1.5 left-2 text-[8px] sm:text-[9px] font-bold text-white uppercase tracking-wider bg-[#6E1824]/90 px-2 py-0.5 rounded-full shadow-xs">
+                    {count} Items
                   </span>
                 </div>
 
-                <div className="p-2.5 sm:p-5 flex-1 flex flex-col justify-between space-y-1.5 sm:space-y-2.5">
+                <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between space-y-1">
                   <div>
-                    <h3 className="text-xs sm:text-xl font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors leading-tight">
+                    <h3 className="text-xs sm:text-sm font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors leading-tight truncate">
                       {cat.title}
                     </h3>
 
-                    <p className="hidden sm:block text-xs text-[#241A17]/75 mt-1 leading-relaxed line-clamp-2">
+                    <p className="hidden sm:block text-[11px] text-[#241A17]/70 mt-0.5 leading-tight line-clamp-1">
                       {cat.description}
                     </p>
                   </div>
 
-                  <div className="pt-1.5 sm:pt-3 border-t border-[#E9DED0] flex items-center justify-between text-[10px] sm:text-xs text-[#6E1824] font-semibold">
-                    <span>Explore &rarr;</span>
-                    <span className="hidden sm:flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
+                  <div className="pt-1 border-t border-[#E9DED0] flex items-center justify-between text-[10px] sm:text-[11px] text-[#6E1824] font-semibold">
+                    <span>Explore</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>

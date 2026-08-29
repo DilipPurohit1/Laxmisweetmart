@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGradDod" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#2D150B"/>
+      <stop offset="100%" stop-color="#120603"/>
+    </radialGradient>
+    <linearGradient id="dodolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3E1C0C"/>
+      <stop offset="40%" stop-color="#260F05"/>
+      <stop offset="100%" stop-color="#120501"/>
+    </linearGradient>
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="brassPlatter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="50%" stop-color="#B45309"/>
+      <stop offset="100%" stop-color="#78350F"/>
+    </linearGradient>
+    <filter id="shadowDod" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="450" fill="url(#bgGradDod)"/>
+  
+  <!-- Brass Thali Platter -->
+  <ellipse cx="300" cy="300" rx="230" ry="85" fill="url(#brassPlatter)" filter="url(#shadowDod)"/>
+  <ellipse cx="300" cy="298" rx="205" ry="70" fill="#92400E" opacity="0.9"/>
+  <ellipse cx="300" cy="298" rx="180" ry="58" fill="#78350F"/>
+
+  <!-- Dodol Diamond & Square Halwa Cubes -->
+  <!-- Cube 1 (Center Front) -->
+  <g transform="translate(230, 200)" filter="url(#shadowDod)">
+    <!-- Top Face -->
+    <polygon points="70,10 130,40 70,70 10,40" fill="#2E1206" stroke="#4A1E0B" stroke-width="1"/>
+    <polygon points="70,10 130,40 70,70 10,40" fill="url(#glossGrad)"/>
+    <!-- Left Face -->
+    <polygon points="10,40 70,70 70,125 10,95" fill="#1C0902"/>
+    <!-- Right Face -->
+    <polygon points="70,70 130,40 130,95 70,125" fill="#280F05"/>
+    <!-- Cashew Nut on Top -->
+    <path d="M60,35 C55,28 75,25 80,33 C83,38 72,45 60,35 Z" fill="#FDE68A" stroke="#D97706" stroke-width="0.8"/>
+  </g>
+
+  <!-- Cube 2 (Left) -->
+  <g transform="translate(130, 180)" filter="url(#shadowDod)">
+    <polygon points="70,10 130,40 70,70 10,40" fill="#2E1206" stroke="#4A1E0B" stroke-width="1"/>
+    <polygon points="70,10 130,40 70,70 10,40" fill="url(#glossGrad)"/>
+    <polygon points="10,40 70,70 70,120 10,90" fill="#1C0902"/>
+    <polygon points="70,70 130,40 130,90 70,120" fill="#280F05"/>
+    <path d="M62,35 C57,28 77,25 82,33 C85,38 74,45 62,35 Z" fill="#FDE68A" stroke="#D97706" stroke-width="0.8"/>
+  </g>
+
+  <!-- Cube 3 (Right) -->
+  <g transform="translate(330, 180)" filter="url(#shadowDod)">
+    <polygon points="70,10 130,40 70,70 10,40" fill="#2E1206" stroke="#4A1E0B" stroke-width="1"/>
+    <polygon points="70,10 130,40 70,70 10,40" fill="url(#glossGrad)"/>
+    <polygon points="10,40 70,70 70,120 10,90" fill="#1C0902"/>
+    <polygon points="70,70 130,40 130,90 70,120" fill="#280F05"/>
+    <path d="M58,35 C53,28 73,25 78,33 C81,38 70,45 58,35 Z" fill="#FDE68A" stroke="#D97706" stroke-width="0.8"/>
+  </g>
+
+  <!-- Label Badge -->
+  <rect x="30" y="30" width="220" height="38" rx="10" fill="#000000" opacity="0.6"/>
+  <text x="45" y="55" fill="#F0C05A" font-family="'Playfair Display', serif" font-size="17" font-weight="bold">Goan Coconut Dodol</text>
+</svg>

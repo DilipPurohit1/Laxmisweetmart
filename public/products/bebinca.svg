@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGradBeb" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#3E2723"/>
+      <stop offset="100%" stop-color="#1A0C08"/>
+    </radialGradient>
+    <linearGradient id="layerDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4E260E"/>
+      <stop offset="50%" stop-color="#6D3814"/>
+      <stop offset="100%" stop-color="#3D1C08"/>
+    </linearGradient>
+    <linearGradient id="layerLight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A26227"/>
+      <stop offset="50%" stop-color="#C6833D"/>
+      <stop offset="100%" stop-color="#8F4F19"/>
+    </linearGradient>
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5EFEB"/>
+      <stop offset="50%" stop-color="#DFD5C8"/>
+      <stop offset="100%" stop-color="#B8A996"/>
+    </linearGradient>
+    <filter id="dropShadowBeb" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="450" fill="url(#bgGradBeb)"/>
+  
+  <!-- Wooden Platter -->
+  <ellipse cx="300" cy="310" rx="240" ry="90" fill="#2B1408" opacity="0.8"/>
+  <ellipse cx="300" cy="295" rx="220" ry="75" fill="url(#plateGrad)" filter="url(#dropShadowBeb)"/>
+  <ellipse cx="300" cy="295" rx="190" ry="60" fill="#E8DED2" opacity="0.9"/>
+
+  <!-- Bebinca Slices -->
+  <g transform="translate(180, 130)" filter="url(#dropShadowBeb)">
+    <!-- Main Wedge Slice -->
+    <!-- Top Face -->
+    <polygon points="120,40 220,100 120,150 20,90" fill="#783F15" stroke="#4A2307" stroke-width="1.5"/>
+    <polygon points="120,40 220,100 120,150 20,90" fill="url(#layerLight)" opacity="0.4"/>
+    <ellipse cx="120" cy="95" rx="70" ry="25" fill="#FFE082" opacity="0.2"/>
+
+    <!-- Front Left Face (7 Distinct Layers) -->
+    <!-- Layer 1 -->
+    <polygon points="20,90 120,150 120,165 20,105" fill="url(#layerDark)"/>
+    <!-- Layer 2 -->
+    <polygon points="20,105 120,165 120,178 20,118" fill="url(#layerLight)"/>
+    <!-- Layer 3 -->
+    <polygon points="20,118 120,178 120,192 20,132" fill="url(#layerDark)"/>
+    <!-- Layer 4 -->
+    <polygon points="20,132 120,192 120,205 20,145" fill="url(#layerLight)"/>
+    <!-- Layer 5 -->
+    <polygon points="20,145 120,205 120,218 20,158" fill="url(#layerDark)"/>
+    <!-- Layer 6 -->
+    <polygon points="20,158 120,218 120,230 20,170" fill="url(#layerLight)"/>
+    <!-- Layer 7 -->
+    <polygon points="20,170 120,230 120,245 20,185" fill="url(#layerDark)"/>
+
+    <!-- Front Right Face (7 Distinct Layers) -->
+    <!-- Layer 1 -->
+    <polygon points="120,150 220,100 220,115 120,165" fill="url(#layerLight)"/>
+    <!-- Layer 2 -->
+    <polygon points="120,165 220,115 220,128 120,178" fill="url(#layerDark)"/>
+    <!-- Layer 3 -->
+    <polygon points="120,178 220,128 220,142 120,192" fill="url(#layerLight)"/>
+    <!-- Layer 4 -->
+    <polygon points="120,192 220,142 220,155 120,205" fill="url(#layerDark)"/>
+    <!-- Layer 5 -->
+    <polygon points="120,205 220,155 220,168 120,218" fill="url(#layerLight)"/>
+    <!-- Layer 6 -->
+    <polygon points="120,218 220,168 220,180 120,230" fill="url(#layerDark)"/>
+    <!-- Layer 7 -->
+    <polygon points="120,230 220,180 220,195 120,245" fill="url(#layerLight)"/>
+
+    <!-- Garnish & Nutmeg / Almond Flakes on Top -->
+    <ellipse cx="110" cy="85" rx="8" ry="4" fill="#FFE0B2" transform="rotate(-15, 110, 85)"/>
+    <ellipse cx="135" cy="95" rx="9" ry="4" fill="#FFE0B2" transform="rotate(25, 135, 95)"/>
+    <ellipse cx="90" cy="95" rx="7" ry="3" fill="#FFE0B2" transform="rotate(40, 90, 95)"/>
+    <circle cx="125" cy="80" r="1.5" fill="#5D4037"/>
+    <circle cx="105" cy="100" r="1.5" fill="#5D4037"/>
+    <circle cx="140" cy="90" r="1.2" fill="#5D4037"/>
+  </g>
+
+  <!-- Label Badge -->
+  <rect x="30" y="30" width="220" height="38" rx="10" fill="#000000" opacity="0.6"/>
+  <text x="45" y="55" fill="#F0C05A" font-family="'Playfair Display', serif" font-size="17" font-weight="bold">Goan 7-Layer Bebinca</text>
+</svg>

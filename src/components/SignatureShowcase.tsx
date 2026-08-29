@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ArrowRight, Eye, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const SignatureShowcase: React.FC = () => {
   const { products, setSelectedProduct } = useStore();
@@ -41,16 +41,16 @@ export const SignatureShowcase: React.FC = () => {
       : '/products/placeholder.jpg';
 
   return (
-    <section id="favourites" className="py-10 sm:py-16 bg-[#FFFDF8] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
+    <section id="favourites" className="py-6 sm:py-9 bg-[#FFFDF8] border-b border-[#E9DED0] text-left scroll-mt-16 sm:scroll-mt-20">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-8 lg:px-12">
         
         {/* Section Heading */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4 sm:mb-5">
           <div>
-            <span className="text-[11px] font-bold tracking-widest uppercase text-[#6E1824] block mb-1">
+            <span className="text-[10px] font-bold tracking-widest uppercase text-[#6E1824] block mb-0.5">
               Handcrafted Specialties
             </span>
-            <h2 className="text-2xl sm:text-3xl font-serif font-black text-[#241A17]">
+            <h2 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
               A Few of Our Favourites
             </h2>
           </div>
@@ -63,50 +63,50 @@ export const SignatureShowcase: React.FC = () => {
               href="#catalog"
               className="inline-flex items-center gap-1 text-xs font-bold text-[#6E1824] hover:underline"
             >
-              <span>View Full Catalog</span>
+              <span>Full Catalog</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
 
-        {/* Auto-Rotating Featured Magazine Showcase */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-4">
+        {/* Compact Balanced Magazine Showcase */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-5">
           
           {/* Main Spotlight Card */}
-          <div className="lg:col-span-7 group rounded-3xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-6 sm:p-8 flex flex-col justify-between transition-all duration-500 shadow-sm hover:shadow-md relative overflow-hidden">
-            <div className="space-y-2">
+          <div className="lg:col-span-7 group rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 shadow-xs hover:shadow-sm">
+            <div className="space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[10px] font-bold uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[9px] font-bold uppercase tracking-wider">
                   Featured Specialty
                 </span>
-                <span className="text-xs font-serif font-black text-[#6E1824]">
+                <span className="text-sm font-serif font-bold text-[#6E1824]">
                   ₹{activeItem.indicativePrice} <span className="text-[10px] font-normal text-[#241A17]/70">/{activeItem.unit}</span>
                 </span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
+              <h3 className="text-lg sm:text-xl font-serif font-black text-[#241A17]">
                 {activeItem.name}
               </h3>
-              <p className="text-xs sm:text-sm text-[#241A17]/80 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-[#241A17]/80 line-clamp-2 leading-relaxed">
                 {activeItem.description}
               </p>
             </div>
 
-            {/* Photo Frame */}
+            {/* Compact Photo Frame */}
             <div 
               onClick={() => setSelectedProduct(activeItem)}
-              className="my-5 w-full h-56 sm:h-72 rounded-2xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex items-center justify-center relative cursor-pointer group/img"
+              className="my-3 w-full h-44 sm:h-52 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex items-center justify-center relative cursor-pointer group/img shadow-inner"
             >
               <img
                 src={activeImage}
                 alt={activeItem.name}
-                className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
                 }}
               />
               <div className="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="px-3 py-1.5 rounded-xl bg-white text-[#241A17] text-xs font-bold flex items-center gap-1.5 shadow-md">
-                  <Eye className="w-3.5 h-3.5 text-[#6E1824]" /> View Details & Pricing
+                <span className="px-2.5 py-1 rounded-lg bg-white text-[#241A17] text-[11px] font-bold flex items-center gap-1 shadow-md">
+                  <Eye className="w-3 h-3 text-[#6E1824]" /> View Details
                 </span>
               </div>
             </div>
@@ -118,32 +118,34 @@ export const SignatureShowcase: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => setActiveFeatureIndex(idx)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      idx === validIndex ? 'w-6 bg-[#6E1824]' : 'w-1.5 bg-[#E9DED0] hover:bg-[#6E1824]/40'
+                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                      idx === validIndex ? 'w-5 bg-[#6E1824]' : 'w-1.5 bg-[#E9DED0] hover:bg-[#6E1824]/40'
                     }`}
                   />
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={prevItem}
-                  className="p-2 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors"
+                  className="p-1.5 rounded-lg bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors cursor-pointer"
+                  title="Previous item"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={nextItem}
-                  className="p-2 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors"
+                  className="p-1.5 rounded-lg bg-[#FFFDF8] border border-[#E9DED0] hover:bg-[#E9DED0] text-[#241A17] transition-colors cursor-pointer"
+                  title="Next item"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Right: Quick Curated Cards */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-4">
+          {/* Right: Compact Curated Cards */}
+          <div className="lg:col-span-5 flex flex-col justify-between gap-2.5 sm:gap-3">
             {sideItems.map((item) => {
               const itemImg =
                 Array.isArray(item.images) && item.images.length > 0 && item.images[0]
@@ -154,13 +156,13 @@ export const SignatureShowcase: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => setSelectedProduct(item)}
-                  className="group cursor-pointer p-4 rounded-2xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 transition-all flex items-center gap-4 shadow-sm hover:shadow-md"
+                  className="group cursor-pointer p-2.5 sm:p-3 rounded-xl bg-[#F8F3EA] border border-[#E9DED0] hover:border-[#C89B3C]/70 transition-all flex items-center gap-3 shadow-2xs hover:shadow-xs"
                 >
-                  <div className="w-20 h-20 rounded-xl bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-[#FFFDF8] border border-[#E9DED0] overflow-hidden flex-shrink-0">
                     <img
                       src={itemImg}
                       alt={item.name}
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/products/placeholder.jpg';
                       }}
@@ -168,16 +170,16 @@ export const SignatureShowcase: React.FC = () => {
                   </div>
 
                   <div className="flex-1 overflow-hidden">
-                    <div className="text-[10px] uppercase tracking-wider font-bold text-[#6E1824]">
+                    <div className="text-[9px] uppercase tracking-wider font-bold text-[#6E1824]">
                       {item.category.replace('-', ' ')}
                     </div>
-                    <h4 className="text-sm font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors truncate">
+                    <h4 className="text-xs sm:text-sm font-serif font-bold text-[#241A17] group-hover:text-[#6E1824] transition-colors truncate">
                       {item.name}
                     </h4>
                     <p className="text-[11px] text-[#241A17]/70 line-clamp-1 mt-0.5">
                       {item.description}
                     </p>
-                    <div className="text-xs font-serif font-bold text-[#6E1824] mt-1">
+                    <div className="text-xs font-serif font-bold text-[#6E1824] mt-0.5">
                       ₹{item.indicativePrice} <span className="text-[9px] font-normal text-[#241A17]/60">/{item.unit}</span>
                     </div>
                   </div>

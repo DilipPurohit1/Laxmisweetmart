@@ -98,12 +98,18 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('slsm_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return normalizeList(parsed).filter((p) => p.isVisible);
+      const v = localStorage.getItem('slsm_cat_version');
+      if (v === 'v2.2') {
+        const saved = localStorage.getItem('slsm_products');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return normalizeList(parsed).filter((p) => p.isVisible);
+          }
         }
+      } else {
+        localStorage.setItem('slsm_cat_version', 'v2.2');
+        localStorage.setItem('slsm_products', JSON.stringify(INITIAL_PRODUCTS));
       }
     } catch {}
     return INITIAL_PRODUCTS.filter((p) => p.isVisible);
@@ -111,11 +117,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const [adminProducts, setAdminProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('slsm_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return normalizeList(parsed);
+      const v = localStorage.getItem('slsm_cat_version');
+      if (v === 'v2.2') {
+        const saved = localStorage.getItem('slsm_products');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return normalizeList(parsed);
+          }
         }
       }
     } catch {}

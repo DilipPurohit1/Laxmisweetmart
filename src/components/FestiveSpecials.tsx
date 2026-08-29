@@ -160,10 +160,27 @@ export const FestiveSpecials: React.FC = () => {
   }, [finalProducts.length]);
 
   const scrollTabs = (direction: 'left' | 'right') => {
-    if (tabsContainerRef.current) {
-      const scrollAmount = direction === 'left' ? -200 : 200;
-      tabsContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    const el = tabsContainerRef.current;
+    if (!el) return;
+
+    if (direction === 'right') {
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 25) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+        setActiveFestivalIndex(0);
+      } else {
+        el.scrollBy({ left: 180, behavior: 'smooth' });
+        setActiveFestivalIndex((prev) => (prev + 1) % FESTIVAL_CONFIGS.length);
+      }
+    } else {
+      if (el.scrollLeft <= 25) {
+        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+        setActiveFestivalIndex(FESTIVAL_CONFIGS.length - 1);
+      } else {
+        el.scrollBy({ left: -180, behavior: 'smooth' });
+        setActiveFestivalIndex((prev) => (prev - 1 + FESTIVAL_CONFIGS.length) % FESTIVAL_CONFIGS.length);
+      }
     }
+    setActiveProductIndex(0);
   };
 
   const handleFestivalClick = (idx: number) => {
@@ -176,7 +193,7 @@ export const FestiveSpecials: React.FC = () => {
   return (
     <section
       id="festive"
-      className="relative py-6 sm:py-12 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none scroll-mt-16 sm:scroll-mt-20"
+      className="relative py-5 sm:py-9 overflow-hidden border-b border-[#E9DED0] dark:border-[#382B29] transition-colors duration-1000 text-left select-none scroll-mt-16 sm:scroll-mt-20"
       style={{
         backgroundColor: activeFestival.themeBg
       }}
