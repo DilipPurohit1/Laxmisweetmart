@@ -354,10 +354,10 @@ export const AdminDashboard: React.FC = () => {
   // 1. LOGIN VIEW (EMPTY BY DEFAULT)
   if (!user || !token) {
     return (
-      <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-4 selection:bg-[#6E1824] selection:text-white">
-        <div className="max-w-md w-full bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl p-8 shadow-xl space-y-6 text-left">
+      <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center p-3 sm:p-4 selection:bg-[#6E1824] selection:text-white">
+        <div className="w-full max-w-[94vw] sm:max-w-md bg-[#FFFDF8] border border-[#E9DED0] rounded-3xl p-5 sm:p-8 shadow-xl space-y-5 text-left">
           
-          <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center justify-between pb-1">
             <button
               onClick={() => setIsAdminView(false)}
               className="inline-flex items-center gap-1.5 text-xs text-[#241A17]/70 hover:text-[#6E1824] font-medium"
@@ -381,14 +381,15 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="text-center space-y-2">
-            <div className="inline-block p-3 bg-[#F8F3EA] rounded-2xl border border-[#E9DED0] mb-1">
+            {/* Seamless Logo without awkward card border */}
+            <div className="py-1 mb-0.5">
               <ShopBrandName size="sm" />
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[11px] font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#6E1824]/10 text-[#6E1824] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
               <Lock className="w-3.5 h-3.5" />
               <span>Owner Portal</span>
             </div>
-            <h1 className="text-2xl font-serif font-black text-[#241A17]">
+            <h1 className="text-xl sm:text-2xl font-serif font-black text-[#241A17]">
               Admin Sign In
             </h1>
             <p className="text-xs text-[#241A17]/70 leading-relaxed">
@@ -468,8 +469,8 @@ export const AdminDashboard: React.FC = () => {
 
         {/* EMAIL OTP & PASSWORD RESET MODAL */}
         {isOtpModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl max-w-md w-full p-6 space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[#FFFDF8] rounded-3xl border border-[#E9DED0] shadow-2xl w-full max-w-[94vw] sm:max-w-md p-4 sm:p-6 space-y-4 sm:space-y-5 text-left relative max-h-[90vh] overflow-y-auto">
               
               <div className="flex items-center justify-between border-b border-[#E9DED0] pb-3">
                 <div className="flex items-center gap-2 text-[#6E1824] font-serif font-bold text-base">
@@ -764,15 +765,15 @@ export const AdminDashboard: React.FC = () => {
             <Search className="w-4 h-4 text-[#6E1824] absolute left-3 top-2.5" />
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto touch-pan-x overscroll-x-contain pb-2 sm:pb-0 scrollbar-none -mx-2 px-2 sm:mx-0 sm:px-0 select-none">
             {['all', 'khoya-sweets', 'kaju-katli', 'laddoo', 'ras-malai', 'namkeen', 'dry-fruits', 'bakery', 'dairy-products'].map(cat => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold whitespace-nowrap capitalize transition-all border ${
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold whitespace-nowrap capitalize transition-all border shrink-0 cursor-pointer ${
                   categoryFilter === cat
-                    ? 'bg-[#6E1824] text-white border-[#6E1824]'
-                    : 'bg-[#F8F3EA] text-[#241A17]/80 border-[#E9DED0]'
+                    ? 'bg-[#6E1824] text-white border-[#6E1824] font-bold shadow-xs'
+                    : 'bg-[#F8F3EA] dark:bg-[#1E1716] text-[#241A17]/80 dark:text-[#E2DACF] border-[#E9DED0] dark:border-[#3D302E]'
                 }`}
               >
                 {cat.replace('-', ' ')}

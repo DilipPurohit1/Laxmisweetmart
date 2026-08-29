@@ -48,16 +48,16 @@ export const ProductCatalog: React.FC = () => {
         </p>
       </div>
 
-      {/* Category Tabs (Horizontal Scrollable on Mobile) */}
-      <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-5 sm:mb-6 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
+      {/* Category Tabs (Smooth Horizontal Swipeable on Mobile) */}
+      <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto touch-pan-x overscroll-x-contain pb-2.5 mb-4 sm:mb-6 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0 select-none">
         {CATEGORY_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveCategory(tab.id)}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
               activeCategory === tab.id
-                ? 'bg-[#6E1824] text-[#FFFDF8] border-[#6E1824] shadow-xs'
-                : 'bg-[#FFFDF8] text-[#241A17]/80 border-[#E9DED0] hover:border-[#6E1824]/40'
+                ? 'bg-[#6E1824] text-[#FFFDF8] border-[#6E1824] shadow-xs font-bold'
+                : 'bg-[#FFFDF8] dark:bg-[#1E1716] text-[#241A17]/80 dark:text-[#E2DACF] border-[#E9DED0] dark:border-[#3D302E] hover:border-[#6E1824]/40'
             }`}
           >
             {tab.label}
