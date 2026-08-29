@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import { FestivalTag } from '../types';
 import { Sparkles, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
@@ -132,6 +132,10 @@ export const FestiveSpecials: React.FC = () => {
   const { products, setSelectedProduct } = useStore();
   const [activeFestivalIndex, setActiveFestivalIndex] = useState(0);
   const [activeProductIndex, setActiveProductIndex] = useState(0);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
 
   const activeFestival = FESTIVAL_CONFIGS[activeFestivalIndex];
 
@@ -149,13 +153,47 @@ export const FestiveSpecials: React.FC = () => {
   // Fallback if empty
   const finalProducts = displayProducts.length > 0 ? displayProducts : products.filter(p => p.isFestiveSpecial);
 
-  // Auto-scroll items every 4.5s
+  // Auto-scroll products every 4.5s
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveProductIndex((prev) => (prev + 1) % Math.max(1, finalProducts.length));
     }, 4500);
     return () => clearInterval(timer);
   }, [finalProducts.length]);
+
+  // Gentle Continuous Auto-Move for the Festival Selection Buttons (so user doesn't need to manually scroll)
+  useEffect(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    let animId: number;
+    const speed = 0.35; // Gentle slow glide speed
+
+    const step = () => {
+      if (!isUserInteracting && container) {
+        if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 1) {
+          container.scrollLeft = 0;
+        } else {
+          container.scrollLeft += speed;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [isUserInteracting]);
+
+  // When active festival changes, smoothly center the active tab into view
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [activeFestivalIndex]);
 
   const currentFeatured = finalProducts[activeProductIndex] || finalProducts[0];
 
@@ -193,24 +231,37 @@ export const FestiveSpecials: React.FC = () => {
             </p>
           </div>
 
-          {/* Festival Switcher Tabs with Smooth Mobile Touch Swiping */}
-          <div className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none">
-            {FESTIVAL_CONFIGS.map((fest, idx) => (
-              <button
-                key={fest.tag}
-                onClick={() => {
-                  setActiveFestivalIndex(idx);
-                  setActiveProductIndex(0);
-                }}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
-                  idx === activeFestivalIndex
-                    ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105'
-                    : 'bg-white/15 text-white border-white/20 hover:bg-white/25 hover:text-white'
-                }`}
-              >
-                {fest.tag}
-              </button>
-            ))}
+          {/* Festival Switcher Tabs with Slow Auto-Moving Carousel & Touch Support */}
+          <div
+            ref={tabsContainerRef}
+            onMouseEnter={() => setIsUserInteracting(true)}
+            onMouseLeave={() => setIsUserInteracting(false)}
+            onTouchStart={() => setIsUserInteracting(true)}
+            onTouchEnd={() => {
+              setTimeout(() => setIsUserInteracting(false), 2500);
+            }}
+            className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none scroll-smooth"
+          >
+            {FESTIVAL_CONFIGS.map((fest, idx) => {
+              const isActive = idx === activeFestivalIndex;
+              return (
+                <button
+                  key={fest.tag}
+                  ref={isActive ? activeTabRef : null}
+                  onClick={() => {
+                    setActiveFestivalIndex(idx);
+                    setActiveProductIndex(0);
+                  }}
+                  className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105 ring-2 ring-[#E5B842]/40'
+                      : 'bg-white/15 text-white border-white/20 hover:bg-white/25 hover:text-white'
+                  }`}
+                >
+                  {fest.tag}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -407,14 +458,54 @@ export const FestiveSpecials: React.FC = () => {
             </>
           )}
 
-          {/* 6. MAHA SHIVRATRI: Sacred Trishul & Bilva */}
+          {/* 6. MAHA SHIVRATRI: Divine Golden Trishul with Damru & Crescent Moon */}
           {activeFestival.type === 'maha_shivratri' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex items-center anim-modak-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
-                  <svg viewBox="0 0 32 32" className="w-5 h-5 sm:w-7 sm:h-7 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]">
-                    <circle cx="16" cy="16" r="14" fill="#311042" stroke="#C084FC" strokeWidth="1" />
-                    <path d="M16 6 L16 26 M10 10 Q16 16 16 20 M22 10 Q16 16 16 20" stroke="#FDE047" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                <div key={i} className="flex flex-col items-center anim-modak-pulse select-none" style={{ animationDelay: `${i * 0.25}s` }}>
+                  <svg viewBox="0 0 36 44" className="w-5 h-6 sm:w-7 sm:h-8 drop-shadow-[0_0_10px_rgba(253,224,71,0.9)]">
+                    {/* Crescent Moon behind Trident */}
+                    <path
+                      d="M23 8 C18 10 16 16 18 22 C15 19 15 12 21 7 Z"
+                      fill="#FEF08A"
+                      opacity="0.9"
+                    />
+                    {/* Central Trishul Spear & Side Prongs */}
+                    <path
+                      d="M18 2 L20 10 L18 12 L16 10 Z"
+                      fill="url(#trishulGradBar)"
+                      stroke="#FEF08A"
+                      strokeWidth="0.6"
+                    />
+                    <path
+                      d="M10 8 C10 16 16 19 18 20 C20 19 26 16 26 8 C24 10 22 13 18 13 C14 13 12 10 10 8 Z"
+                      fill="url(#trishulGradBar)"
+                      stroke="#FEF08A"
+                      strokeWidth="0.8"
+                    />
+                    {/* Trident Shaft */}
+                    <line x1="18" y1="12" x2="18" y2="42" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+                    {/* Damru (Hourglass Drum) */}
+                    <path
+                      d="M13 24 L23 24 L14 31 L22 31 Z"
+                      fill="#D97706"
+                      stroke="#FDE68A"
+                      strokeWidth="0.7"
+                    />
+                    <circle cx="18" cy="27.5" r="1.2" fill="#FEF08A" />
+                    <circle cx="11" cy="28" r="1" fill="#EF4444" />
+                    <circle cx="25" cy="28" r="1" fill="#EF4444" />
+                    {/* Sacred Tripundra Vibhuti Lines */}
+                    <line x1="15" y1="16" x2="21" y2="16" stroke="#FFFFFF" strokeWidth="0.8" />
+                    <line x1="15.5" y1="17.5" x2="20.5" y2="17.5" stroke="#FFFFFF" strokeWidth="0.8" />
+                    <circle cx="18" cy="16.7" r="0.6" fill="#DC2626" />
+                    <defs>
+                      <linearGradient id="trishulGradBar" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FEF08A" />
+                        <stop offset="50%" stopColor="#FBBF24" />
+                        <stop offset="100%" stopColor="#D97706" />
+                      </linearGradient>
+                    </defs>
                   </svg>
                 </div>
               ))}
@@ -425,7 +516,7 @@ export const FestiveSpecials: React.FC = () => {
           {activeFestival.type === 'gudi_padwa' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="anim-modak-pulse" style={{ animationDelay: `${i * 0.25}s` }}>
+                <div key={i} className="anim-modak-pulse select-none" style={{ animationDelay: `${i * 0.25}s` }}>
                   <svg viewBox="0 0 30 36" className="w-5 h-6 sm:w-7 sm:h-8 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
                     <line x1="15" y1="36" x2="15" y2="6" stroke="#D97706" strokeWidth="2" strokeLinecap="round" />
                     <circle cx="15" cy="6" r="5" fill="#FBBF24" stroke="#FFFDF8" strokeWidth="0.8" />
@@ -440,7 +531,7 @@ export const FestiveSpecials: React.FC = () => {
           {activeFestival.type === 'rakhi' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="anim-rakhi-float" style={{ animationDelay: `${i * 0.3}s` }}>
+                <div key={i} className="anim-rakhi-float select-none" style={{ animationDelay: `${i * 0.3}s` }}>
                   <svg viewBox="0 0 46 30" className="w-7 h-5 sm:w-9 sm:h-7 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]">
                     <path d="M4 15 Q14 11 20 15" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                     <path d="M26 15 Q32 19 42 15" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" fill="none" />
@@ -456,7 +547,7 @@ export const FestiveSpecials: React.FC = () => {
           {activeFestival.type === 'navratri' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="anim-dandiya-clack" style={{ animationDelay: `${i * 0.3}s` }}>
+                <div key={i} className="anim-dandiya-clack select-none" style={{ animationDelay: `${i * 0.3}s` }}>
                   <svg viewBox="0 0 40 40" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]">
                     <line x1="6" y1="34" x2="34" y2="6" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" />
                     <line x1="34" y1="34" x2="6" y2="6" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" />
@@ -471,7 +562,7 @@ export const FestiveSpecials: React.FC = () => {
           {activeFestival.type === 'independence' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="anim-kite-flutter" style={{ animationDelay: `${i * 0.3}s` }}>
+                <div key={i} className="anim-kite-flutter select-none" style={{ animationDelay: `${i * 0.3}s` }}>
                   <svg viewBox="0 0 46 26" className="w-7 h-4 sm:w-9 sm:h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">
                     <rect x="3" y="2" width="40" height="7" fill="#FF9933" rx="1" />
                     <rect x="3" y="9" width="40" height="8" fill="#FFFFFF" />
@@ -486,7 +577,7 @@ export const FestiveSpecials: React.FC = () => {
           {activeFestival.type === 'goan_festivals' && (
             <>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="anim-modak-pulse" style={{ animationDelay: `${i * 0.25}s` }}>
+                <div key={i} className="anim-modak-pulse select-none" style={{ animationDelay: `${i * 0.25}s` }}>
                   <svg viewBox="0 0 36 36" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
                     <circle cx="18" cy="18" r="14" fill="none" stroke="#10B981" strokeWidth="2.5" strokeDasharray="3,3" />
                     <circle cx="18" cy="6" r="3" fill="#F59E0B" />
