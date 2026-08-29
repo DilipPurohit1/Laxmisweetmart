@@ -132,10 +132,10 @@ export const FestiveSpecials: React.FC = () => {
   const { products, setSelectedProduct } = useStore();
   const [activeFestivalIndex, setActiveFestivalIndex] = useState(0);
   const [activeProductIndex, setActiveProductIndex] = useState(0);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeFestival = FESTIVAL_CONFIGS[activeFestivalIndex];
 
@@ -161,39 +161,41 @@ export const FestiveSpecials: React.FC = () => {
     return () => clearInterval(timer);
   }, [finalProducts.length]);
 
-  // Gentle Continuous Auto-Move for the Festival Selection Buttons (so user doesn't need to manually scroll)
+  // Jitter-free, 60fps continuous smooth glide for festival selection buttons
   useEffect(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
 
-    let animId: number;
-    const speed = 0.35; // Gentle slow glide speed
+    let animationFrame: number;
+    const speed = 0.75; // Snappy, smooth speed
 
-    const step = () => {
-      if (!isUserInteracting && container) {
-        if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 1) {
+    const animate = () => {
+      if (!isPaused && container) {
+        if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
           container.scrollLeft = 0;
         } else {
           container.scrollLeft += speed;
         }
       }
-      animId = requestAnimationFrame(step);
+      animationFrame = requestAnimationFrame(animate);
     };
 
-    animId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animId);
-  }, [isUserInteracting]);
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isPaused]);
 
-  // When active festival changes, smoothly center the active tab into view
-  useEffect(() => {
-    if (activeTabRef.current) {
-      activeTabRef.current.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest'
-      });
-    }
-  }, [activeFestivalIndex]);
+  // Handle user click on a festival tab without jitter
+  const handleFestivalClick = (idx: number) => {
+    // Pause auto-scroll immediately on user interaction
+    setIsPaused(true);
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(() => {
+      setIsPaused(false);
+    }, 4000);
+
+    setActiveFestivalIndex(idx);
+    setActiveProductIndex(0);
+  };
 
   const currentFeatured = finalProducts[activeProductIndex] || finalProducts[0];
 
@@ -231,27 +233,24 @@ export const FestiveSpecials: React.FC = () => {
             </p>
           </div>
 
-          {/* Festival Switcher Tabs with Slow Auto-Moving Carousel & Touch Support */}
+          {/* Festival Switcher Tabs with Buttery Smooth Movement */}
           <div
             ref={tabsContainerRef}
-            onMouseEnter={() => setIsUserInteracting(true)}
-            onMouseLeave={() => setIsUserInteracting(false)}
-            onTouchStart={() => setIsUserInteracting(true)}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
             onTouchEnd={() => {
-              setTimeout(() => setIsUserInteracting(false), 2500);
+              if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+              pauseTimeoutRef.current = setTimeout(() => setIsPaused(false), 3000);
             }}
-            className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none scroll-smooth"
+            className="flex items-center gap-1.5 overflow-x-auto touch-pan-x pb-1.5 scrollbar-none overscroll-x-contain -mx-3 px-3 sm:mx-0 sm:px-0 select-none cursor-grab active:cursor-grabbing"
           >
             {FESTIVAL_CONFIGS.map((fest, idx) => {
               const isActive = idx === activeFestivalIndex;
               return (
                 <button
                   key={fest.tag}
-                  ref={isActive ? activeTabRef : null}
-                  onClick={() => {
-                    setActiveFestivalIndex(idx);
-                    setActiveProductIndex(0);
-                  }}
+                  onClick={() => handleFestivalClick(idx)}
                   className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer ${
                     isActive
                       ? 'bg-[#E5B842] text-[#241A17] border-[#E5B842] shadow-md font-extrabold scale-105 ring-2 ring-[#E5B842]/40'
